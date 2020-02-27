@@ -1,0 +1,22 @@
+---
+title: "Medicare Part B Drug Spending"
+author: "Suruchi Ramanujan"
+date: "2/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(janitor)
+```
+
+
+```{r}
+drugspending<-read.csv("Medicare Part B Drug Spending YTD 2017.csv", skip = 3) %>%
+clean_names() %>%
+  select("drug_description", "brand_name", "generic_name","x2013_total_spending", "x2013_total_dosage_units",
+         ,"x2014_total_spending", "x2014_total_dosage_units", ,"x2015_total_spending", "x2015_total_dosage_units", ,"x2016_total_spending", "x2016_total_dosage_units", ,"x2017_total_spending", "x2017_total_dosage_units",
+         "change_in_average_spending_per_dosage_unit_2016_2017", "annual_growth_rate_in_average_spending_per_dosage_unit_2013_2017")
+```
+
