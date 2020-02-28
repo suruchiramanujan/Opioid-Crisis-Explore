@@ -42,8 +42,8 @@ Data set 2:
 
 Data set 3: 
 
-Data source: https://about.twitter.com/en_us/values/elections-integrity.html#data
+Data source:
 
 About Me: My name is Suruchi Ramanujan and I am a senior in Quincy House studying Molecular and Cellular Biology. I grew up in Overland Park, Kansas so this year has been a real win for me (Go Chiefs). In my free time, I enjoy performing Indian Classical dance, running, and grinding through my DataCamp exercises.
 
-My github repo for this project is below:
+My github repo for this project is below: https://github.com/suruchiramanujan/final-project.git
