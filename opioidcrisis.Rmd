@@ -57,7 +57,7 @@ clean_names() %>%
 
 ```
 
-Introduction: This project is meant to look into trends regarding the issue of opioid overuse. The misuse of opioids has ignited a national crisis that has contributed to worsening health outcomes for thousands and their families throughout the United States. This 
+Introduction: This project is meant to look into trends regarding the issue of opioid overuse. In the 1990's doctors overprescribed pain relievers as a temporary bandage to disease without knowing the potential for addiction. Since then, the misuse of opioids has ignited a national crisis that has contributed to worsening health outcomes for thousands and their families throughout the United States. Opioid misuse is not only an emotional burden for patients and their families, it also loses the United States billions of dollars yearly. Thus, this study looks into some of the spending trends of opioid use in conjunction with death rates.
 
 Data set 1: Data Set Tracks Overall trends in drug spending amongst opioids and nonopioids across the country. I want to look at this just to see which types of drugs are receiving the most attention and is it with reason that these drugs are being spent on.
 
