@@ -10,25 +10,40 @@ author: "Suruchi Ramanujan"
 date: "3/6/2020"
 output: html_document
 ---
-** This is a modified version of ms_3 since I answered many of the questions for ms_4 in last week's analysis.*
+** This is a modified version of ms_3 since I answered many of the questions for ms_4 in last week's analysis.**
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 library(dplyr)
 library(janitor)
+library(tidyverse)
 ```
 
-These first ___ are the new data sets
-```{r}
-# This data provides state-specific numbers regarding the number of drug
-# overdose deaths per state as well as the predicted numbers for drug overdose
-# deaths. I am super excited to plot this graph onto a map and look at how the
-# worst affected states change over time. I am also interested in seeing whether
-# trends match across drug groups.
 
-drugoverdosedeaths<- read.csv("VSRR_Provisional_Drug_Overdose_Death_Counts.csv") %>%
+```{r}
+
+# This first data set is the new data set for the week. This data provides
+# state-specific numbers from the CDC regarding the number of drug overdose
+# deaths per state as well as the predicted numbers for drug overdose deaths. I
+# am super excited to plot this graph onto a map and look at how the worst
+# affected states change over time.
+
+drugoverdosedeaths<- read.csv(
+  "VSRR_Provisional_Drug_Overdose_Death_Counts.csv") %>%
   clean_names() %>%
-  select("state", "year", "month", "indicator", "data_value", "state_name", "predicted_value")
+  select("state", "year", "month", "indicator", 
+         "data_value", "state_name", "predicted_value") %>%
+  
+# I only want the information rows containing drug death information- I still
+# need to decipher the difference between "Deaths" and "Drug Overdose Deaths"
+# though.
+  
+ filter(str_detect(indicator, "Death")) %>%
+  
+# Ultimately, I want to look at state-specific data/trends so I want to group by
+# state.
+  
+ group_by("state_name")
 ```
 
 
@@ -80,17 +95,19 @@ clean_names() %>%
 
 Introduction: This project is meant to look into trends regarding the issue of opioid overuse. In the 1990's doctors overprescribed pain relievers as a temporary bandage to disease without knowing the potential for addiction. Since then, the misuse of opioids has ignited a national crisis that has contributed to worsening health outcomes for thousands and their families throughout the United States. Opioid misuse is not only an emotional burden for patients and their families, it also loses the United States billions of dollars yearly. Thus, this study looks into some of the spending trends of opioid use in conjunction with death rates.
 
-Data Set 1: Data Set Tracks Overall trends in drug spending amongst opioids and nonopioids across the country. I want to look at this just to see which types of drugs are receiving the most attention and is it with reason that these drugs are being spent on.
+Data Set 1: Data Set 1, from the CDC, introduces drug overdose death levels over the last couple of years based on state. Visually, for readers, I think this is very convenient data for recognizing which states are worst hit by the opioid crisis. Just to briefly look into which states are worst hit, I did an arrange(desc()) and saw that the data agreed with website information online that said West Virginia is worst hit by the crisis; however, I also noticed that some data is incorrectly coded/is missing so I will have to figure out how to work with that. It looks like West Virginia, South Carolina, and Colorado are worst hit by the epidemic so I might add a couple more Data Sets using Data Commons that analyze opioid spending in S. Carolina and Colorado in comparison to the existing Data Set 5. It might also be interesting to look at which state is least hit by the epidemic. Writing this, however, I think it might be important to normalize the death counts to state population as well, so I might join a table with state populations for the years indicated as well.
 
-Data Set 2: Data Set 2 introduces the audience to opioid deaths by county in New York from 2003- 2017. I imagine using a heat map to see how levels have changed over time/ whether there is a trend in opioid deaths.
+Data Set 2: Data Set tracks overall trends in drug spending amongst opioids and nonopioids across the country. I want to look at this just to see which types of drugs are receiving the most attention and is it with reason that these drugs are being spent on.
 
-Data Set 3: Data Set 3 outlines the spending in New York on one of the worst addiction drugs (Cocaine) vs. three of the most widely used addiction treatment drugs (Methadone, Naloxone, and Buprenorphine). This site has information for other drugs too so I may include those as well. I still have to decide which drugs to include though.
+Data Set 3: Data Set 2 introduces the audience to opioid deaths by county in New York from 2003- 2017. I imagine using a heat map to see how levels have changed over time/ whether there is a trend in opioid deaths.
 
-Data Set 4: West Virginia is one of the worst hit states in terms of opioid addiction. I would like to compare the drug spending for the same four drugs in Data Set 3 between West Virginia and New York and note any trends/comparisons.
+Data Set 4: Data Set 3 outlines the spending in New York on one of the worst addiction drugs (Cocaine) vs. three of the most widely used addiction treatment drugs (Methadone, Naloxone, and Buprenorphine). This site has information for other drugs too so I may include those as well. I still have to decide which drugs to include though.
 
-Data sources:For Data Sets 1 and 2, I used healthdata.gov. For Data Sets 3 and 4, I used Data Commons.
+Data Set 5: West Virginia is one of the worst hit states in terms of opioid addiction. I would like to compare the drug spending for the same four drugs in Data Set 3 between West Virginia and New York and note any trends/comparisons. I imagine comparative line graphs but am definitely open to changing the visual model based on the different visualization methods I learn in class.
 
-Future: I think I am content with the state specific data with drugs of choice but I think it would be cool to also map out opioid deaths based on country region or based on income levels in a location. I still have to flesh out this idea though.
+Data sources:For Data Set 1, I used information from the CDC. For Data Sets 2 and 3, I used healthdata.gov. For Data Sets 4 and 5, I used Data Commons.
+
+Future: I found this site: https://pdas.samhsa.gov/#/ with extremely helpful data sources, but I am not sure which categories I would like to compare given how much data there is available. I think by next week I would like to further narrow my interests in opioid addiction and decide if I even want to use this data.
 
 About Me: My name is Suruchi Ramanujan and I am a senior in Quincy House studying Molecular and Cellular Biology. I grew up in Overland Park, Kansas so this year has been a real win for me (Go Chiefs). In my free time, I enjoy performing Indian Classical dance, running, and grinding through my DataCamp exercises.
 
