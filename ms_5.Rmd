@@ -1,0 +1,102 @@
+---
+title: "ms_5"
+author: "Suruchi Ramanujan"
+date: "3/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(dplyr)
+library(janitor)
+library(tidyverse)
+```
+
+*Copy pasted from last week
+```{r}
+
+# This first data set is the new data set from last week. This data provides
+# state-specific numbers from the CDC regarding the number of drug overdose
+# deaths per state as well as the predicted numbers for drug overdose deaths. I
+# am super excited to plot this graph onto a map and look at how the worst
+# affected states change over time.
+
+drugoverdosedeaths<- read.csv(
+  "VSRR_Provisional_Drug_Overdose_Death_Counts.csv") %>%
+  clean_names() %>%
+  select("state", "year", "month", "indicator", 
+         "data_value", "state_name", "predicted_value") %>%
+  
+# I only want the information rows containing drug death information- I still
+# need to decipher the difference between "Deaths" and "Drug Overdose Deaths"
+# though.
+  
+ filter(str_detect(indicator, "Death")) %>%
+  
+# Ultimately, I want to look at state-specific data/trends so I want to group by
+# state.
+  
+ group_by("state_name")
+```
+
+*New for this week
+```{r}
+# For this week, I am going to plot the Drug Overdose Deaths in April of 2015 by
+# state according to the CDC. I want to use this data just because it is the
+# first recorded date of drug overdose deaths. I am hoping there will be some
+# expected trend across states.
+
+drugoverdosedeaths$data_value <-as.numeric(drugoverdosedeaths$data_value)
+
+drugodapr15<- drugoverdosedeaths %>%
+  arrange(desc(data_value)) %>%
+  select(state_name, `"state_name"`, data_value, indicator, month, year) %>%
+  filter(year == "2015",
+        month == "April",
+        indicator == "Number of Drug Overdose Deaths") 
+  
+
+ggplot(drugodapr15, aes(x= reorder(state_name,-data_value), y= data_value)) +
+geom_col() +
+labs(title = "Drug Overdose Deaths by State (April 2015)", 
+     x = "State", 
+     y = "Drug Overdose Deaths") +
+theme_classic()+ 
+theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+```{r}
+
+# I am going to do the same with July 2019, which is the latest date of
+# recording. 
+
+drugodjul19<- drugoverdosedeaths %>%
+  arrange(desc(data_value)) %>%
+  select(state_name, `"state_name"`, data_value, indicator, month, year) %>%
+  filter(year == "2019",
+        month == "July",
+        indicator == "Number of Drug Overdose Deaths") 
+  
+
+ggplot(drugodjul19, aes(x= reorder(state_name,-data_value), y= data_value)) +
+geom_col() +
+labs(title = "Drug Overdose Deaths by State (July 2019)", 
+     x = "State", 
+     y = "Drug Overdose Deaths") +
+theme_classic()+ 
+theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+difference_over_time<- drugodapr15 %>%
+  full_join(drugodjul19, by = "state_name") %>%
+  mutate(difference = data_value.y - data_value.x)
+
+ggplot(difference_over_time, aes(x= reorder(state_name,-difference), y= difference)) +
+geom_col() +
+labs(title = "Difference in Drug Overdose Deaths between April 2015 and July 2019", 
+     x = "State", 
+     y = "Difference in Drug Overdose Deaths") +
+theme_classic()+ 
+theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
