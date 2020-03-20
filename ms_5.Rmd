@@ -7,13 +7,16 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+
+# I want to load all necessary packages. 
+
 library(dplyr)
 library(janitor)
 library(tidyverse)
 ```
 
-*Copy pasted from last week
-```{r}
+*Reading in drug overdose data was copy pasted from last week
+```{r, echo = FALSE}
 
 # This first data set is the new data set from last week. This data provides
 # state-specific numbers from the CDC regarding the number of drug overdose
@@ -39,14 +42,22 @@ drugoverdosedeaths<- read.csv(
  group_by("state_name")
 ```
 
-*New for this week
-```{r}
+*The graphs below are new for this week. I don't know that I am satisfied with the readability of the last graph and will probably change it slightly in my final version.
+
+```{r, echo = FALSE}
+
 # For this week, I am going to plot the Drug Overdose Deaths in April of 2015 by
 # state according to the CDC. I want to use this data just because it is the
 # first recorded date of drug overdose deaths. I am hoping there will be some
 # expected trend across states.
 
+# I am not sure if this makes a difference but I am going to change the variable
+# to be numeric (from factor) to rank later on.
+
 drugoverdosedeaths$data_value <-as.numeric(drugoverdosedeaths$data_value)
+
+# Here, I want to rank the deaths by state in descending order and filter them
+# such that we are only looking at info from April of 2015.
 
 drugodapr15<- drugoverdosedeaths %>%
   arrange(desc(data_value)) %>%
@@ -55,19 +66,33 @@ drugodapr15<- drugoverdosedeaths %>%
         month == "April",
         indicator == "Number of Drug Overdose Deaths") 
   
+# Now, I want to ggplot the data. In the aesthetics, when I simply plot the
+# state name vs data value, the data values do not rank in descending order
+# despite specifying earlier, so I used the trick from PSet 3 of reordering in
+# the x specifications.
 
 ggplot(drugodapr15, aes(x= reorder(state_name,-data_value), y= data_value)) +
 geom_col() +
+
+# I want to label the title and x and y axes so that they are more descriptive.
+  
 labs(title = "Drug Overdose Deaths by State (April 2015)", 
      x = "State", 
      y = "Drug Overdose Deaths") +
+  
+# I changed the theme such that the backing of the graph is blank.
+  
 theme_classic()+ 
+
+# The x axis details are cluttered so I chose to angle them for easy reading.
+  
 theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 ```{r}
 
 # I am going to do the same with July 2019, which is the latest date of
-# recording. 
+# recording. All code is the same except that the filter specifications at the
+# start are for July of 2019 and I changed the title to specify July of 2019.
 
 drugodjul19<- drugoverdosedeaths %>%
   arrange(desc(data_value)) %>%
@@ -76,7 +101,6 @@ drugodjul19<- drugoverdosedeaths %>%
         month == "July",
         indicator == "Number of Drug Overdose Deaths") 
   
-
 ggplot(drugodjul19, aes(x= reorder(state_name,-data_value), y= data_value)) +
 geom_col() +
 labs(title = "Drug Overdose Deaths by State (July 2019)", 
@@ -86,17 +110,41 @@ theme_classic()+
 theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-```{r}
+```{r, echo = FALSE}
+
+# I now want to look at how drug overdose death levels changed between 2019 and
+# 2015 by state. To do so, I combined the two data tables from above using a
+# full join.
+
 difference_over_time<- drugodapr15 %>%
   full_join(drugodjul19, by = "state_name") %>%
-  mutate(difference = data_value.y - data_value.x)
 
-ggplot(difference_over_time, aes(x= reorder(state_name,-difference), y= difference)) +
+# I also want to add a column which indicates the difference in deaths between
+# the two data tables.
+  
+mutate(difference = data_value.y - data_value.x)
+
+# I want to graph the difference over time by state with the x axis ranking the
+# difference decrease.
+
+ggplot(difference_over_time, aes(x= reorder(state_name,-difference), 
+                                 y= difference)) +
 geom_col() +
-labs(title = "Difference in Drug Overdose Deaths between April 2015 and July 2019", 
+
+# I also changed the title label and the y axis label to specify the
+# differences.
+  
+labs(title = 
+    "Difference in Drug Overdose Deaths between April 2015 and July 2019", 
      x = "State", 
      y = "Difference in Drug Overdose Deaths") +
+
+# I want the cleanest theme.
+  
 theme_classic()+ 
+
+# I changed the labelling on the x axis to be less cluttered.
+
 theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
