@@ -22,7 +22,7 @@ library(tidyverse)
 
 ```{r}
 
-# This first data set is the new data set for the week. This data provides
+# This first data set provides
 # state-specific numbers from the CDC regarding the number of drug overdose
 # deaths per state as well as the predicted numbers for drug overdose deaths. I
 # am super excited to plot this graph onto a map and look at how the worst

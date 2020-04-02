@@ -15,17 +15,17 @@ library(janitor)
 library(tidyverse)
 ```
 
-*Reading in drug overdose data was copy pasted from last week
-```{r, echo = FALSE}
 
-# This first data set is the new data set from last week. This data provides
+```{r}
+
+# This first data set provides
 # state-specific numbers from the CDC regarding the number of drug overdose
 # deaths per state as well as the predicted numbers for drug overdose deaths. I
 # am super excited to plot this graph onto a map and look at how the worst
 # affected states change over time.
 
 drugoverdosedeaths<- read.csv(
-  "VSRR_Provisional_Drug_Overdose_Death_Counts.csv") %>%
+  "ms_6/VSRR_Provisional_Drug_Overdose_Death_Counts.csv") %>%
   clean_names() %>%
   select("state", "year", "month", "indicator", 
          "data_value", "state_name", "predicted_value") %>%
@@ -40,6 +40,53 @@ drugoverdosedeaths<- read.csv(
 # state.
   
  group_by("state_name")
+```
+
+
+```{r}
+# This data tracks the spending over a course of five years of a series of
+# drugs. I want to compare the spending levels of the different kinds of drugs
+# by categorizing them based on their use. Perhaps, we will find a correlation
+# between spending and drug type for opioid deaths.
+
+drugspending<-read.csv("Medicare Part B Drug Spending YTD 2017.csv", skip = 3) %>%
+clean_names() %>%
+  select("drug_description", "brand_name", "generic_name","x2013_total_spending", "x2013_total_dosage_units", "x2014_total_spending", "x2014_total_dosage_units", 
+  "x2015_total_spending", "x2015_total_dosage_units", "x2016_total_spending", 
+  "x2016_total_dosage_units", "x2017_total_spending", "x2017_total_dosage_units",
+  "change_in_average_spending_per_dosage_unit_2016_2017", "annual_growth_rate_in_average_spending_per_dosage_unit_2013_2017")
+```
+
+```{r}
+
+# This data set displays the number of deaths caused by opioids per county in NY
+# over a course of 15 years.
+
+deathbycounty_ny<- 
+  read.csv("Vital_Statistics__Opioid-Related_Deaths_by_County__Beginning_2003.csv") %>%
+  clean_names()
+
+# Using data commons, I isolated drug spending in NY on some of the worst drugs
+# of addiction and treatment drugs such as Methadone, Buprenorphine, and Naloxone.
+
+drugspending_ny<- read.csv("New York Drug Spending.csv") %>%
+  clean_names() %>%
+  rename( Buprenorphine = "new_york_drug_dea_9064") %>%
+  rename( Cocaine = "new_york_drug_dea_9041l") %>%
+  rename( Methadone = "new_york_drug_dea_9250b") %>%
+  rename( Naloxone = "new_york_drug_dea_9411") 
+
+# I want to compare the drug spending in NY (a state that has a lot of opioid
+# data with the country that has the worst opioid addiction rates, West
+# Virginia)
+
+drugspending_wv<- read.csv("West Virginia Drug Spending.csv") %>%
+clean_names() %>%
+  rename( Buprenorphine = "west_virginia_drug_dea_9064") %>%
+  rename( Cocaine = "west_virginia_drug_dea_9041l") %>%
+  rename( Methadone = "west_virginia_drug_dea_9250b") %>%
+  rename( Naloxone = "west_virginia_drug_dea_9411") 
+
 ```
 
 *The graphs below are new for this week. I don't know that I am satisfied with the readability of the last graph and will probably change it slightly in my final version.
@@ -146,5 +193,60 @@ theme_classic()+
 # I changed the labelling on the x axis to be less cluttered.
 
 theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+library(shiny)
+library(tidyverse)
+library(gt)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+### Read in Data
+drugoverdosedeaths<- read.csv("ms_6/VSRR_Provisional_Drug_Overdose_Death_Counts.csv")
+
+drugoverdosedeaths <- drugoverdosedeaths %>%
+    clean_names() %>%
+    select("state", "year", "month", "indicator", 
+           "data_value", "state_name", "predicted_value") %>%
+    filter(str_detect(indicator, "Drug Overdose Deaths")) %>%
+    group_by("state_name") %>%
+    mutate(time = paste(month, year, sep = " "))
+drugoverdosedeaths$time<- as.factor(drugoverdosedeaths$time)
+drugoverdosedeaths$time<- fct_relevel(drugoverdosedeaths$time, "January 2015", "February 2015", 
+                                "March 2015", "April 2015", 
+                                "May 2015", "June 2015", "July 2015", "August 2015", "September 2015", 
+                                "October 2015", "November 2015", "December 2015", 
+                                "January 2016", "February 2016", "March 2016", 
+                                "April 2016", 
+                                "May 2016", "June 2016", "July 2016", "August 2016", "September 2016", 
+                                "October 2016", "November 2016", "December 2016", 
+                                "January 2017", "February 2017", 
+                                "March 2017", "April 2017", "May 2017", 
+                                "June 2017", "July 2017", "August 2017", "September 2017", 
+                                "October 2017", "November 2017", "December 2017", 
+                                "January 2018", "February 2018", 
+                                "March 2018", "April 2018", 
+                                "May 2018", "June 2018", "July 2018", "August 2018", 
+                                "September 2018", "October 2018", "November 2018", "December 2018",
+                                "January 2019", "February 2019", 
+                                "March 2019", "April 2019", 
+                                "May 2019", "June 2019", "July 2019") 
+drugoverdosedeaths$data_value <-as.numeric(drugoverdosedeaths$data_value)
+
+
+        ggplot(drugoverdosedeaths, aes(x= reorder(state_name,-data_value), y= data_value)) +
+            geom_col() +
+            facet_wrap(~time)
+            labs(title = "Drug Overdose Deaths by State Over Time", 
+                 x = "State", 
+                 y = "Drug Overdose Deaths") +
+            
+            theme_classic()+ 
+            
+            theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
 ```
 
