@@ -4,6 +4,7 @@ library(gt)
 library(dplyr)
 library(ggplot2)
 library(lubridate)
+library(janitor)
 
 ### Read in Data
 drugoverdosedeaths<- read.csv("VSRR_Provisional_Drug_Overdose_Death_Counts.csv")
@@ -13,27 +14,30 @@ drugoverdosedeaths <- drugoverdosedeaths %>%
     select("state", "year", "month", "indicator", 
            "data_value", "state_name", "predicted_value") %>%
     filter(str_detect(indicator, "Drug Overdose Deaths")) %>%
-    group_by("state_name") %>%
+    filter(state_name != "United States") %>%
     mutate(time = paste(month, year, sep = " ")) %>%
     mutate(time=mdy(time)) %>%
+    group_by(time) %>%
     arrange(time)
 drugoverdosedeaths$data_value <-as.numeric(drugoverdosedeaths$data_value)
+drugoverdosedeaths$predicted_value <-as.numeric(drugoverdosedeaths$predicted_value)
 
 ui <- fluidPage(
     titlePanel("Drug Overdoses by State Over Time"),
     sliderInput("time", "Time Slider", min(drugoverdosedeaths$time),
     max(drugoverdosedeaths$time),
-              value = min(drugoverdosedeaths$time)),
+              value = min(drugoverdosedeaths$time),
+              step = 1),
     plotOutput("overdose_counts")
 )
 
 
 server <- function(input, output, session) {
-    #Rationing Map 
     output$overdose_counts <- renderPlot({
-        ggplot(drugoverdosedeaths, aes(x= reorder(state_name,-data_value), y= data_value)) +
+       drugoverdosedeaths2<- drugoverdosedeaths %>%
+        filter(time == input$time)
+        ggplot(drugoverdosedeaths2, aes(x= reorder(state_name,-data_value), y= data_value)) +
             geom_col() +
-            facet_wrap(~time)
             labs(title = "Drug Overdose Deaths by State Over Time", 
                  x = "State", 
                  y = "Drug Overdose Deaths") +
