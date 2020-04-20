@@ -13,6 +13,9 @@ knitr::opts_chunk$set(echo = FALSE)
 library(dplyr)
 library(janitor)
 library(tidyverse)
+library(ggthemes)
+library(maps)
+library(leaflet)
 ```
 
 
@@ -203,7 +206,6 @@ library(dplyr)
 library(ggplot2)
 library(lubridate)
 
-### Read in Data
 drugoverdosedeaths<- read.csv("ms_6/VSRR_Provisional_Drug_Overdose_Death_Counts.csv")
 
 drugoverdosedeaths <- drugoverdosedeaths %>%
@@ -235,10 +237,11 @@ drugoverdosedeaths$time<- fct_relevel(drugoverdosedeaths$time, "January 2015", "
                                 "May 2019", "June 2019", "July 2019") 
 drugoverdosedeaths$data_value <-as.numeric(drugoverdosedeaths$data_value)
 
+drugoverdosedeaths2 <- drugoverdosedeaths %>%
+ filter(time == "January 2015")
 
-        ggplot(drugoverdosedeaths, aes(x= reorder(state_name,-data_value), y= data_value)) +
+        ggplot(drugoverdosedeaths2, aes(x= reorder(state_name,-data_value), y= data_value)) +
             geom_col() +
-            facet_wrap(~time)
             labs(title = "Drug Overdose Deaths by State Over Time", 
                  x = "State", 
                  y = "Drug Overdose Deaths") +
@@ -248,5 +251,279 @@ drugoverdosedeaths$data_value <-as.numeric(drugoverdosedeaths$data_value)
             theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
+```
+
+```{r, message=FALSE}
+#drug treatment centers
+
+treatment_locations <- read_csv("Drug Treatment Centers.csv") %>%
+  select(`Program Name`, Street, City, State, Zipcode)
+
+us_state <- map_data("state") %>%
+  rename(state_full = region)
+
+# https://simplemaps.com/data/us-cities
+
+longlatinfo <- read_csv("uscitieslonglat.csv") %>%
+  rename(City = city) %>%
+  rename(State = state_id)
+
+treatment_locations_map <- treatment_locations %>%
+  left_join(longlatinfo, by = c("City", "State")) %>%
+  group_by(State) %>%
+  mutate(count = n()) %>%
+  mutate(state_name = tolower(state_name)) %>%
+  rename(state_full = state_name) %>%
+  left_join(us_state, by = "state_full") 
+
+ggplot(data = treatment_locations_map,
+            mapping = aes(x = long, y = lat.y,
+                          fill = count, group = group)) + 
+  geom_polygon(color = "gray90", size = 0.05) + 
+  theme_map() +
+  scale_fill_gradient(low = "white", high = "#CB454A",
+                      breaks = c(0,20,40,60,80,120)) +
+    guides(fill = guide_legend(nrow = 1)) + 
+    theme(legend.position = "bottom") +
+  labs(title = "Distribution of Opioid Treatment Centers in 2020",
+       color = "Number of Treatment Centers in State")
+
+# per capita pop data taken from https://www.census.gov/data/tables/time-series/demo/popest/2010s-state-total.html#par_textimage
+
+state_pop <- read_csv("State Population Estimate.csv") %>%
+  select(NAME, POPESTIMATE2019) %>%
+  rename(state_full = NAME) %>%
+  mutate(state_full = tolower(state_full))
+
+treatment_locations_map_per_cap <- treatment_locations_map %>%
+  left_join(state_pop, by = "state_full") %>%
+  group_by(State) %>%
+  mutate(count_per_pop = n()/POPESTIMATE2019)
+
+ggplot(data = treatment_locations_map_per_cap,
+            mapping = aes(x = long, y = lat.y,
+                          fill = count_per_pop, group = group)) + 
+  geom_polygon(color = "gray90", size = 0.05) + 
+  theme_map() +
+  scale_fill_gradient(low = "white", high = "#CB454A",
+                      breaks = c(0,20,40,60,80,120)) +
+    guides(fill = guide_legend(nrow = 1)) + 
+    theme(legend.position = "bottom") +
+  labs(title = "Distribution of Opioid Treatment Centers in 2020 (Per Capita)",
+       color = "Number of Treatment Centers in State Per Capita")
+```
+
+
+
+```{r, message = FALSE}
+#MA specific data
+
+madeathbyagegender <- read_csv("MAFatalOpioidOverdosesByAgeAndGender.csv")
+
+macountyheroin <- read_csv("MAHeroinAsPrimarySubstanceOfUse.csv")
+
+madeathbyrace <- read_csv("MAOpioidDeathsByRaceAndEthnicity.csv")
+
+matypeofsubstance <- read_csv("MAPrimarySubstanceofUseWhenEnteringTreatmentbyTown.csv")
+
+toxdeath <- read_csv("MAProportionDecedentsWithRxHistorybyToxicologyScreen.csv",
+         skip = 1)
+
+```
+
+```{r}
+mavsus_death <- read_csv("MAAgeAdjustedOpioidRelatedDeathRateByYear.csv")
+
+mavsus_death <- mavsus_death %>%
+  group_by(Geography) %>%
+  filter (Year != "2015") %>%
+  filter (Year != "1999") %>%
+  rename(deathperhundredthousand =`Age-Adjusted Opioid-Related Death Rate per 100,000 People`)
+
+ggplot(mavsus_death, aes(x = Year, y = as.numeric(deathperhundredthousand), color = Geography)) +
+  geom_line() +
+theme_classic() +
+  labs(x = "Year",
+       y = "Deaths per 100,000",
+       title = "Comparison of Death Rates between Massachusetts and the United States",
+       subtitle = "Between the Years of 2000 and 2014") 
+```
+
+```{r}
+counties <- read_csv("zip_codes_states.csv") %>%
+  filter(state == "MA") %>%
+  rename(County = county) %>%
+  rename(Municipality = city)
+
+madeathbycounty <- read_csv("MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv")
+
+countypop <- read_csv("countypop.csv") %>%
+  mutate(Pop = Pop/100000) %>%
+  rename(subregion = CTYNAME) %>%
+  mutate(subregion = tolower(subregion)) %>%
+  select(subregion, Pop)
+
+madeathbycountywlonglat <- madeathbycounty %>%
+  left_join(counties, by = "Municipality")
+
+madeathbycountywlonglat <- madeathbycountywlonglat %>%
+  select(County,
+         `Confirmed Opioid Related Death Count 2001-2005`,
+         `Confirmed Opioid Related Death Count 2006-2010`,
+         `Confirmed Opioid Related Death Count 2011-2015`,
+         `latitude`,
+         `longitude`,
+         `Municipality`) %>%
+  distinct(Municipality, .keep_all= TRUE) %>%
+  na.omit() %>%
+  rename(subregion = County) %>%
+  mutate(subregion = tolower(subregion)) %>%
+  group_by(subregion) %>%
+  mutate(total_deaths_2001.5 = sum(`Confirmed Opioid Related Death Count 2001-2005`)) %>%
+  mutate(total_deaths_2006.10 = sum(`Confirmed Opioid Related Death Count 2006-2010`)) %>%
+  mutate(total_deaths_2011.15 = sum(`Confirmed Opioid Related Death Count 2011-2015`)) %>%
+  distinct(subregion, .keep_all= TRUE)
+  
+
+us_county <- map_data("county") %>%
+  filter(region == "massachusetts")
+
+# https://www.indexmundi.com/facts/united-states/quick-facts/massachusetts/percent-of-people-of-all-ages-in-poverty#table
+
+povertybycounty <- read_csv("PovertyByCounty.csv") %>%
+  rename(subregion = County) %>%
+  mutate(subregion = tolower(subregion))
+
+full_data <- us_county %>%
+  left_join(madeathbycountywlonglat, by = "subregion") %>%
+  left_join(countypop, by = "subregion") %>%
+  left_join(povertybycounty, by = "subregion") %>%
+  mutate(percap_2001.5 = total_deaths_2001.5/Pop) %>%
+  mutate(percap_2006.10 = total_deaths_2006.10/Pop) %>%
+  mutate(percap_2011.15 = total_deaths_2011.15/Pop) 
+
+ggplot(full_data, aes(x = `Poverty Percent`, y = percap_2001.5)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+full_data %>%
+  summarize(correlation = cor(percap_2001.5,`Poverty Percent`))
+
+ggplot(full_data, aes(x = `Poverty Percent`, y = percap_2006.10)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+full_data %>%
+  summarize(correlation = cor(percap_2006.10,`Poverty Percent`))
+
+ggplot(full_data, aes(x = `Poverty Percent`, y = percap_2011.15)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+full_data %>%
+  summarize(correlation = cor(percap_2011.15,`Poverty Percent`))
+
+ggplot(data = full_data,
+            mapping = aes(x = long, y = lat,
+                          fill = `Poverty Percent`,
+                          group = group)) + 
+  geom_polygon(color = "gray90", size = 0.05) + 
+  theme_map() +
+  scale_fill_gradient(low = "white", high = "#CB454A",
+                      breaks = c(0,2,4,6,8,10)) +
+    guides(fill = guide_legend(nrow = 1)) + 
+    theme(legend.position = "bottom")
+
+ggplot(data = full_data,
+            mapping = aes(x = long, y = lat,
+                          fill = percap_2001.5,
+                          group = group)) + 
+  geom_polygon(color = "gray90", size = 0.05) + 
+  theme_map() +
+  scale_fill_gradient(low = "white", high = "#CB454A",
+                      breaks = c(0,20,40,60,80,100)) +
+    guides(fill = guide_legend(nrow = 1)) + 
+    theme(legend.position = "bottom")
+
+ggplot(data = full_data,
+            mapping = aes(x = long, y = lat,
+                          fill = percap_2006.10,
+                          group = group)) + 
+  geom_polygon(color = "gray90", size = 0.05) + 
+  theme_map() +
+  scale_fill_gradient(low = "white", high = "#CB454A",
+                      breaks = c(0,20,40,60,80,100)) +
+    guides(fill = guide_legend(nrow = 1)) + 
+    theme(legend.position = "bottom")
+
+ggplot(data = full_data,
+            mapping = aes(x = long, y = lat,
+                          fill = percap_2011.15,
+                          group = group)) + 
+  geom_polygon(color = "gray90", size = 0.05) + 
+  theme_map() +
+  scale_fill_gradient(low = "white", high = "#CB454A",
+                      breaks = c(0,20,40,60,80,100)) +
+    guides(fill = guide_legend(nrow = 1)) + 
+    theme(legend.position = "bottom")
+
+# don't put these in final app
+
+ggplot(data = full_data,
+            mapping = aes(x = long, y = lat,
+                          fill = total_deaths_2001.5,
+                          group = group)) + 
+  geom_polygon(color = "gray90", size = 0.05) + 
+  theme_map() +
+  scale_fill_gradient(low = "white", high = "#CB454A",
+                      breaks = c(0,100,200,300,400,500,600)) +
+    guides(fill = guide_legend(nrow = 1)) + 
+    theme(legend.position = "bottom")
+
+ggplot(data = full_data,
+            mapping = aes(x = long, y = lat,
+                          fill = total_deaths_2006.10,
+                          group = group)) + 
+  geom_polygon(color = "gray90", size = 0.05) + 
+  theme_map() +
+  scale_fill_gradient(low = "white", high = "#CB454A",
+                      breaks = c(0,100,200,300,400,500,600)) +
+    guides(fill = guide_legend(nrow = 1)) + 
+    theme(legend.position = "bottom")
+
+ggplot(data = full_data,
+            mapping = aes(x = long, y = lat,
+                          fill = total_deaths_2011.15,
+                          group = group)) + 
+  geom_polygon(color = "gray90", size = 0.05) + 
+  theme_map() +
+  scale_fill_gradient(low = "white", high = "#CB454A",
+                      breaks = c(0,100,200,300,400,500,600)) +
+    guides(fill = guide_legend(nrow = 1)) + 
+    theme(legend.position = "bottom")
+
+```
+
+```{r}
+
+#treatment centers in MA
+
+treatment_locations_map_mas <- treatment_locations %>%
+  left_join(longlatinfo, by = c("City", "State")) %>%
+  filter(State == "MA") %>%
+  drop_na()
+
+
+leaflet(options = leafletOptions(dragging = TRUE,
+                                 minZoom = 8, 
+                                 maxZoom = 10)) %>%
+  addProviderTiles("CartoDB") %>%
+  addCircleMarkers(data = treatment_locations_map_mas,
+                   radius = 3,
+                   label = ~`Program Name`) 
+
+# need to figure this out bc color isnt working
+ # addLegend(position = "bottomright", colors = "#0000FF", title = "Opioid Treatment Sites")
+  
 ```
 
