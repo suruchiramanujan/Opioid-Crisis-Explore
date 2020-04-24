@@ -6,7 +6,6 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
 
 # I want to load all necessary packages. 
 
@@ -16,240 +15,88 @@ library(tidyverse)
 library(ggthemes)
 library(maps)
 library(leaflet)
-```
-
-
-```{r}
-
-# This first data set provides
-# state-specific numbers from the CDC regarding the number of drug overdose
-# deaths per state as well as the predicted numbers for drug overdose deaths. I
-# am super excited to plot this graph onto a map and look at how the worst
-# affected states change over time.
-
-drugoverdosedeaths<- read.csv(
-  "ms_6/VSRR_Provisional_Drug_Overdose_Death_Counts.csv") %>%
-  clean_names() %>%
-  select("state", "year", "month", "indicator", 
-         "data_value", "state_name", "predicted_value") %>%
-  
-# I only want the information rows containing drug death information- I still
-# need to decipher the difference between "Deaths" and "Drug Overdose Deaths"
-# though.
-  
- filter(str_detect(indicator, "Death")) %>%
-  
-# Ultimately, I want to look at state-specific data/trends so I want to group by
-# state.
-  
- group_by("state_name")
-```
-
-
-```{r}
-# This data tracks the spending over a course of five years of a series of
-# drugs. I want to compare the spending levels of the different kinds of drugs
-# by categorizing them based on their use. Perhaps, we will find a correlation
-# between spending and drug type for opioid deaths.
-
-drugspending<-read.csv("Medicare Part B Drug Spending YTD 2017.csv", skip = 3) %>%
-clean_names() %>%
-  select("drug_description", "brand_name", "generic_name","x2013_total_spending", "x2013_total_dosage_units", "x2014_total_spending", "x2014_total_dosage_units", 
-  "x2015_total_spending", "x2015_total_dosage_units", "x2016_total_spending", 
-  "x2016_total_dosage_units", "x2017_total_spending", "x2017_total_dosage_units",
-  "change_in_average_spending_per_dosage_unit_2016_2017", "annual_growth_rate_in_average_spending_per_dosage_unit_2013_2017")
+library(gganimate)
 ```
 
 ```{r}
 
-# This data set displays the number of deaths caused by opioids per county in NY
-# over a course of 15 years.
+# total deaths per year in u.s. by cancer, drug overdose, cvd
 
-deathbycounty_ny<- 
-  read.csv("Vital_Statistics__Opioid-Related_Deaths_by_County__Beginning_2003.csv") %>%
-  clean_names()
+deathsbycommondiseases <- read_csv("deathsbycommondiseases.csv", col_types = "ldddddd") %>%
+  select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, `Deaths by CVD`) %>%
+  mutate(`Proportion of 1999 Deaths by Cancer` = `Deaths by Cancer`/549829) %>%
+  mutate(`Proportion of 1999 Deaths by Drugs` = `Deaths by Drug Overdose`/19122) %>%
+  mutate(`Proportion of 1999 Deaths by CVD` = `Deaths by CVD`/949900)
 
-# Using data commons, I isolated drug spending in NY on some of the worst drugs
-# of addiction and treatment drugs such as Methadone, Buprenorphine, and Naloxone.
+totaldeathsbycommondiseases <- deathsbycommondiseases %>%
+  select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, `Deaths by CVD`) %>%
+  pivot_longer(.,
+             cols = starts_with("Deaths by"),
+             names_prefix = "Deaths by",
+             values_to = "Deaths") %>%
+  rename(`Cause of Death` = name)
 
-drugspending_ny<- read.csv("New York Drug Spending.csv") %>%
-  clean_names() %>%
-  rename( Buprenorphine = "new_york_drug_dea_9064") %>%
-  rename( Cocaine = "new_york_drug_dea_9041l") %>%
-  rename( Methadone = "new_york_drug_dea_9250b") %>%
-  rename( Naloxone = "new_york_drug_dea_9411") 
-
-# I want to compare the drug spending in NY (a state that has a lot of opioid
-# data with the country that has the worst opioid addiction rates, West
-# Virginia)
-
-drugspending_wv<- read.csv("West Virginia Drug Spending.csv") %>%
-clean_names() %>%
-  rename( Buprenorphine = "west_virginia_drug_dea_9064") %>%
-  rename( Cocaine = "west_virginia_drug_dea_9041l") %>%
-  rename( Methadone = "west_virginia_drug_dea_9250b") %>%
-  rename( Naloxone = "west_virginia_drug_dea_9411") 
-
-```
-
-*The graphs below are new for this week. I don't know that I am satisfied with the readability of the last graph and will probably change it slightly in my final version.
-
-```{r, echo = FALSE}
-
-# For this week, I am going to plot the Drug Overdose Deaths in April of 2015 by
-# state according to the CDC. I want to use this data just because it is the
-# first recorded date of drug overdose deaths. I am hoping there will be some
-# expected trend across states.
-
-# I am not sure if this makes a difference but I am going to change the variable
-# to be numeric (from factor) to rank later on.
-
-drugoverdosedeaths$data_value <-as.numeric(drugoverdosedeaths$data_value)
-
-# Here, I want to rank the deaths by state in descending order and filter them
-# such that we are only looking at info from April of 2015.
-
-drugodapr15<- drugoverdosedeaths %>%
-  arrange(desc(data_value)) %>%
-  select(state_name, `"state_name"`, data_value, indicator, month, year) %>%
-  filter(year == "2015",
-        month == "April",
-        indicator == "Number of Drug Overdose Deaths") 
-  
-# Now, I want to ggplot the data. In the aesthetics, when I simply plot the
-# state name vs data value, the data values do not rank in descending order
-# despite specifying earlier, so I used the trick from PSet 3 of reordering in
-# the x specifications.
-
-ggplot(drugodapr15, aes(x= reorder(state_name,-data_value), y= data_value)) +
-geom_col() +
-
-# I want to label the title and x and y axes so that they are more descriptive.
-  
-labs(title = "Drug Overdose Deaths by State (April 2015)", 
-     x = "State", 
-     y = "Drug Overdose Deaths") +
-  
-# I changed the theme such that the backing of the graph is blank.
-  
-theme_classic()+ 
-
-# The x axis details are cluttered so I chose to angle them for easy reading.
-  
-theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-```{r}
-
-# I am going to do the same with July 2019, which is the latest date of
-# recording. All code is the same except that the filter specifications at the
-# start are for July of 2019 and I changed the title to specify July of 2019.
-
-drugodjul19<- drugoverdosedeaths %>%
-  arrange(desc(data_value)) %>%
-  select(state_name, `"state_name"`, data_value, indicator, month, year) %>%
-  filter(year == "2019",
-        month == "July",
-        indicator == "Number of Drug Overdose Deaths") 
-  
-ggplot(drugodjul19, aes(x= reorder(state_name,-data_value), y= data_value)) +
-geom_col() +
-labs(title = "Drug Overdose Deaths by State (July 2019)", 
-     x = "State", 
-     y = "Drug Overdose Deaths") +
-theme_classic()+ 
-theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-```{r, echo = FALSE}
-
-# I now want to look at how drug overdose death levels changed between 2019 and
-# 2015 by state. To do so, I combined the two data tables from above using a
-# full join.
-
-difference_over_time<- drugodapr15 %>%
-  full_join(drugodjul19, by = "state_name") %>%
-
-# I also want to add a column which indicates the difference in deaths between
-# the two data tables.
-  
-mutate(difference = data_value.y - data_value.x)
-
-# I want to graph the difference over time by state with the x axis ranking the
-# difference decrease.
-
-ggplot(difference_over_time, aes(x= reorder(state_name,-difference), 
-                                 y= difference)) +
-geom_col() +
-
-# I also changed the title label and the y axis label to specify the
-# differences.
-  
-labs(title = 
-    "Difference in Drug Overdose Deaths between April 2015 and July 2019", 
-     x = "State", 
-     y = "Difference in Drug Overdose Deaths") +
-
-# I want the cleanest theme.
-  
-theme_classic()+ 
-
-# I changed the labelling on the x axis to be less cluttered.
-
-theme(axis.text.x = element_text(angle = 45, hjust = 1))
+propdeathsbycommondiseases <- deathsbycommondiseases %>%
+  select(Year, `Proportion of 1999 Deaths by Cancer`, 
+         `Proportion of 1999 Deaths by Drugs`, 
+         `Proportion of 1999 Deaths by CVD`) %>%
+  pivot_longer(.,
+             cols = starts_with("Proportion of"),
+             names_prefix = "Proportion of 1999 Deaths by",
+             values_to = "Prop.Deaths") %>%
+  rename(`Cause of Death` = name)
 ```
 
 ```{r}
-library(shiny)
-library(tidyverse)
-library(gt)
-library(dplyr)
-library(ggplot2)
-library(lubridate)
+plot_deathsbycommondiseases <- ggplot(totaldeathsbycommondiseases, aes(x = Year, y = Deaths, color = `Cause of Death`)) +
+  geom_line() +
+  scale_color_viridis_d() +
+  theme_classic() +
+   labs(x = "Year",
+       y = "Total Number of Deaths in the United States") +
+  geom_point() +
+  transition_reveal(Year)
 
-drugoverdosedeaths<- read.csv("ms_6/VSRR_Provisional_Drug_Overdose_Death_Counts.csv")
+anim_save("plot_deathsbycommondiseases.gif", plot_deathsbycommondiseases)
 
-drugoverdosedeaths <- drugoverdosedeaths %>%
-    clean_names() %>%
-    select("state", "year", "month", "indicator", 
-           "data_value", "state_name", "predicted_value") %>%
-    filter(str_detect(indicator, "Drug Overdose Deaths")) %>%
-    group_by("state_name") %>%
-    mutate(time = paste(month, year, sep = " "))
-drugoverdosedeaths$time<- as.factor(drugoverdosedeaths$time)
-drugoverdosedeaths$time<- fct_relevel(drugoverdosedeaths$time, "January 2015", "February 2015", 
-                                "March 2015", "April 2015", 
-                                "May 2015", "June 2015", "July 2015", "August 2015", "September 2015", 
-                                "October 2015", "November 2015", "December 2015", 
-                                "January 2016", "February 2016", "March 2016", 
-                                "April 2016", 
-                                "May 2016", "June 2016", "July 2016", "August 2016", "September 2016", 
-                                "October 2016", "November 2016", "December 2016", 
-                                "January 2017", "February 2017", 
-                                "March 2017", "April 2017", "May 2017", 
-                                "June 2017", "July 2017", "August 2017", "September 2017", 
-                                "October 2017", "November 2017", "December 2017", 
-                                "January 2018", "February 2018", 
-                                "March 2018", "April 2018", 
-                                "May 2018", "June 2018", "July 2018", "August 2018", 
-                                "September 2018", "October 2018", "November 2018", "December 2018",
-                                "January 2019", "February 2019", 
-                                "March 2019", "April 2019", 
-                                "May 2019", "June 2019", "July 2019") 
-drugoverdosedeaths$data_value <-as.numeric(drugoverdosedeaths$data_value)
+prop_deathsbycommondiseases <- ggplot(propdeathsbycommondiseases, aes(x = Year, y = Prop.Deaths, color = `Cause of Death`)) +
+  geom_line() +
+  scale_color_viridis_d() +
+  theme_classic() +
+  labs(x = "Year",
+       y = "Proportion of 1999 Total Deaths in the United States") +
+  geom_point() +
+  transition_reveal(Year)
 
-drugoverdosedeaths2 <- drugoverdosedeaths %>%
- filter(time == "January 2015")
+anim_save("prop_deathsbycommondiseases.gif", prop_deathsbycommondiseases)
+  
+```
 
-        ggplot(drugoverdosedeaths2, aes(x= reorder(state_name,-data_value), y= data_value)) +
-            geom_col() +
-            labs(title = "Drug Overdose Deaths by State Over Time", 
-                 x = "State", 
-                 y = "Drug Overdose Deaths") +
-            
-            theme_classic()+ 
-            
-            theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```{r}
 
+# https://wonder.cdc.gov/controller/datarequest/D77;jsessionid=3F8131C534663BDD3F79E66994FCF12E
+
+death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv")
+
+us_state <- map_data("state") %>%
+  rename(state_full = region)
+
+death_by_year_and_state <- death_by_year_and_state %>%
+  filter(`UCD - Drug/Alcohol Induced Code` == "D") %>%
+  rename(state_full = State) %>%
+  mutate(state_full = tolower(state_full)) %>%
+  left_join(us_state, by = "state_full" ) 
+
+death_by_year_and_state$`Crude Rate` <-as.numeric(death_by_year_and_state$`Crude Rate`)
+
+ggplot(data = death_by_year_and_state,
+            mapping = aes(x = long, y = lat,
+                          fill = `Crude Rate`, group = group)) + 
+  geom_polygon(color = "gray90", size = 0.05) + 
+  theme_map() +
+  scale_fill_gradient(low = "white", high = "#CB454A") +
+    guides(fill = guide_legend(nrow = 1)) + 
+    theme(legend.position = "bottom")
 
 ```
 
@@ -259,8 +106,11 @@ drugoverdosedeaths2 <- drugoverdosedeaths %>%
 treatment_locations <- read_csv("Drug Treatment Centers.csv") %>%
   select(`Program Name`, Street, City, State, Zipcode)
 
-us_state <- map_data("state") %>%
-  rename(state_full = region)
+# state populations
+
+state_pop <- read_csv("State Population Estimate.csv") %>%
+  rename(state_full = NAME) %>%
+  mutate(state_full = tolower(state_full))
 
 # https://simplemaps.com/data/us-cities
 
@@ -287,13 +137,6 @@ ggplot(data = treatment_locations_map,
     theme(legend.position = "bottom") +
   labs(title = "Distribution of Opioid Treatment Centers in 2020",
        color = "Number of Treatment Centers in State")
-
-# per capita pop data taken from https://www.census.gov/data/tables/time-series/demo/popest/2010s-state-total.html#par_textimage
-
-state_pop <- read_csv("State Population Estimate.csv") %>%
-  select(NAME, POPESTIMATE2019) %>%
-  rename(state_full = NAME) %>%
-  mutate(state_full = tolower(state_full))
 
 treatment_locations_map_per_cap <- treatment_locations_map %>%
   left_join(state_pop, by = "state_full") %>%
@@ -332,7 +175,7 @@ toxdeath <- read_csv("MAProportionDecedentsWithRxHistorybyToxicologyScreen.csv",
 ```
 
 ```{r}
-mavsus_death <- read_csv("MAAgeAdjustedOpioidRelatedDeathRateByYear.csv")
+mavsus_death <- read_csv("MAAgeAdjustedOpioidRelatedDeathRateByYear.csv", col_types = "cdc")
 
 mavsus_death <- mavsus_death %>%
   group_by(Geography) %>%
@@ -340,13 +183,19 @@ mavsus_death <- mavsus_death %>%
   filter (Year != "1999") %>%
   rename(deathperhundredthousand =`Age-Adjusted Opioid-Related Death Rate per 100,000 People`)
 
-ggplot(mavsus_death, aes(x = Year, y = as.numeric(deathperhundredthousand), color = Geography)) +
+plot_mavsus_death <- ggplot(mavsus_death, aes(x = Year, y = as.numeric(deathperhundredthousand), color = Geography)) +
   geom_line() +
+  scale_color_viridis_d() +
 theme_classic() +
   labs(x = "Year",
        y = "Deaths per 100,000",
        title = "Comparison of Death Rates between Massachusetts and the United States",
-       subtitle = "Between the Years of 2000 and 2014") 
+       subtitle = "Between the Years of 2000 and 2014") +
+  geom_point() +
+  transition_reveal(Year)
+
+anim_save("plot_mavsus_death.gif", plot_mavsus_death)
+
 ```
 
 ```{r}
