@@ -16,6 +16,7 @@ library(ggthemes)
 library(maps)
 library(leaflet)
 library(gganimate)
+library(broom)
 ```
 
 ```{r}
@@ -126,6 +127,8 @@ treatment_locations_map <- treatment_locations %>%
   rename(state_full = state_name) %>%
   left_join(us_state, by = "state_full") 
 
+# not in final 
+
 ggplot(data = treatment_locations_map,
             mapping = aes(x = long, y = lat.y,
                           fill = count, group = group)) + 
@@ -143,6 +146,11 @@ treatment_locations_map_per_cap <- treatment_locations_map %>%
   group_by(State) %>%
   mutate(count_per_pop = n()/POPESTIMATE2019)
 
+```
+
+```{r}
+# in final
+
 ggplot(data = treatment_locations_map_per_cap,
             mapping = aes(x = long, y = lat.y,
                           fill = count_per_pop, group = group)) + 
@@ -154,9 +162,8 @@ ggplot(data = treatment_locations_map_per_cap,
     theme(legend.position = "bottom") +
   labs(title = "Distribution of Opioid Treatment Centers in 2020 (Per Capita)",
        color = "Number of Treatment Centers in State Per Capita")
+
 ```
-
-
 
 ```{r, message = FALSE}
 #MA specific data
@@ -376,3 +383,93 @@ leaflet(options = leafletOptions(dragging = TRUE,
   
 ```
 
+```{r}
+
+# models generated from data from kff.org
+
+# ageopioid
+
+ageopioidmodel <- read_csv("U.S. age vs. opioid deaths.csv", col_types = "dcc") %>%
+  clean_names() %>%
+  na.omit() %>%
+  filter(age_range != "Total") %>%
+  mutate(age_range = as.factor(age_range)) %>%
+    mutate(number_of_deaths = as.numeric(number_of_deaths))
+
+ggplot(ageopioidmodel, aes(year, number_of_deaths, color = age_range)) +
+  geom_point() +
+  scale_color_viridis_d() +
+  theme_classic() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Year", y = "Number of Opioid Deaths in America", color = "Age Range")
+
+#raceopioid
+
+raceopioidmodel <- read_csv("U.S. race vs. opioid deaths.csv", col_types = "dcc") %>%
+  clean_names() %>%
+  na.omit() %>%
+  mutate(race = as.factor(race)) %>%
+  mutate(opioid_deaths = as.numeric(opioid_deaths))
+
+ggplot(raceopioidmodel, aes(year, opioid_deaths, color = race)) +
+  geom_point() +
+  scale_color_viridis_d() +
+  theme_classic() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Year", y = "Number of Opioid Deaths in America", color = "Race")
+```
+
+```{r}
+
+# filtering data by race/age
+ages0_24 <- ageopioidmodel %>%
+  filter(age_range == "0-24")
+
+ages0_24 %>%
+    lm(number_of_deaths ~ year, data = .) %>% 
+    tidy(conf.int = TRUE) %>% 
+    select(term, estimate, conf.low, conf.high)
+
+ages25_34 <- ageopioidmodel %>%
+  filter(age_range == "25-34")
+
+ages25_34 %>%
+    lm(number_of_deaths ~ year, data = .) %>% 
+    tidy(conf.int = TRUE) %>% 
+    select(term, estimate, conf.low, conf.high)
+
+ages35_44 <- ageopioidmodel %>%
+  filter(age_range == "35-44")
+
+ages35_44 %>%
+    lm(number_of_deaths ~ year, data = .) %>% 
+    tidy(conf.int = TRUE) %>% 
+    select(term, estimate, conf.low, conf.high)
+
+ages45_54 <- ageopioidmodel %>%
+  filter(age_range == "45-54")
+
+ages45_54 %>%
+    lm(number_of_deaths ~ year, data = .) %>% 
+    tidy(conf.int = TRUE) %>% 
+    select(term, estimate, conf.low, conf.high)
+
+ages55_up <- ageopioidmodel %>%
+  filter(age_range == "55+")
+
+ages55_up %>%
+    lm(number_of_deaths ~ year, data = .) %>% 
+    tidy(conf.int = TRUE) %>% 
+    select(term, estimate, conf.low, conf.high)
+
+
+# averageageopioidmodel <- ageopioidmodel %>%
+  # drop_na() %>%
+  # group_by(age_range) %>%
+  # summarize(mean_deaths = mean(number_of_deaths))
+
+# averageageopioid_model <- lm(mean_deaths ~ age_range, data = averageageopioidmodel)
+# averageageopioid_model %>%
+  # tidy(conf.int = TRUE) %>%
+  # select(term, estimate, conf.low, conf.high)
+```
