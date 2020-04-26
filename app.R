@@ -33,7 +33,7 @@ death_by_year_and_state <- death_by_year_and_state %>%
 
 death_by_year_and_state$`Crude Rate` <-as.numeric(death_by_year_and_state$`Crude Rate`)
 
-treatment_locations <- read_csv("Drug Treatment Centers.csv") %>%
+treatment_locations <- read_csv("Drug Treatment Centers.csv", col_types = "ccccccccc") %>%
   select(`Program Name`, Street, City, State, Zipcode)
 
 # state populations
