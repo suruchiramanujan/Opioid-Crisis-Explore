@@ -174,56 +174,6 @@ mavsus_death <- mavsus_death %>%
 
 ui <- navbarPage(theme = shinytheme("flatly"),
                  "Opioid Trends Across the United States",
-                 tabPanel("About",
-                          column(9,
-                                 h1("Background"),
-                                 p("Opioids have been prescribed for pain management for many decades, 
-                                 although they are effective at treating acute, not chronic pain. 
-                                   In treating chronic pain, opioids can be more harmful than useful. 
-                                   Opioids are cheap, but have high rates of addiction and can lead to 
-                                   dependence and ultimately death from overdose.Since the 1990s, the United States
-                                   has experienced a crisis created by overprescription of opioids. Thousands die yearly
-                                   from uncontrollable overuse."),
-                                 
-                                 p("The plan for this project is to examine the 
-                                   distribution of opioid deaths across states
-                                   over the past twenty years. Having looked at 
-                                   this data, I also sought to look at the 
-                                   distribution of treatment centers to see if 
-                                   the treatment center distribution matches up 
-                                   with opioid death distribution: are the 
-                                   states that need the most attention getting 
-                                   the most attention?"),
-                                 
-                                 p("Following this, I analyzed the data for 
-                                   the state nearest and dearest to our hearts, 
-                                   Massachusetts. How does the distribution 
-                                   of opioid deaths in Massachusetts look and 
-                                   how are treatment centers distributed 
-                                   according to deaths per capita in 
-                                   different counties?"),
-                                 
-                                 p("Finally, I sought to create a model between factors of interest such as 
-                                   age and ethnicity and increases in opioid deaths over the past twenty years."),
-                                 h1("The Data"),
-                                 p("Data concerning the entire United States came from the CDC's Wonder Archive. Massachusetts-specific data came from
-                                   chapter55.digital.mass.gov."),
-                                 p("My project code can be found on my",
-                                   a("GitHub",
-                                     href = "https://github.com/suruchiramanujan/final-project.git",)),
-                                 h1("About Me"),
-                                 p("My name is Suruchi Ramanujan and I am a 
-                                   senior in Quincy House studying 
-                                   Molecular and Cellular Biology. In my free time, 
-                                   I enjoy performing Indian Classical dance, running, 
-                                   and grinding through my DataCamp exercises."),
-                                 p("You can reach me at ",
-                                   a("suruchi_ramanujan@college.harvard.edu",
-                                     href = "mailto: suruchi_ramanujan@college.harvard.edu",),
-                                   "or on ",
-                                   a("LinkedIn",
-                                     href = "https://www.linkedin.com/in/suruchi-ramanujan-791007115/")))),
-                          
                  tabPanel("United States Opioid Data",
                         h1("Opioid Deaths in America"),
                         h3("Comparing Deaths from Opioid Overdose to Deaths from the Leading Causes of Death in America"),
@@ -244,7 +194,6 @@ ui <- navbarPage(theme = shinytheme("flatly"),
                                    compared to cancer and cardiovascular disease as shown below. Thus, even though we are slowly making the changes
                                    needed to curtail cancer and cardiovascular disease deaths, we are still seeing sharp increases in death by
                                    opioid overdose."))),
-                       
                                    fluidPage(
                   titlePanel("Drug Overdoses Per Capita by State Over Time"),
                   sliderTextInput("Year", "Year", 
@@ -324,7 +273,56 @@ tabPanel("Model",
                        label = h3("Select a Category of Race"),
                        choices = c("White, Non-Hispanic", "Black, Non-Hispanic", "Hispanic"))),
          mainPanel(
-           DTOutput("coefrace"))
+           DTOutput("coefrace"))),
+         tabPanel("About",
+                  column(9,
+                         h1("Background"),
+                         p("Opioids have been prescribed for pain management for many decades, 
+                                 although they are effective at treating acute, not chronic pain. 
+                                   In treating chronic pain, opioids can be more harmful than useful. 
+                                   Opioids are cheap, but have high rates of addiction and can lead to 
+                                   dependence and ultimately death from overdose.Since the 1990s, the United States
+                                   has experienced a crisis created by overprescription of opioids. Thousands die yearly
+                                   from uncontrollable overuse."),
+                         
+                         p("The plan for this project is to examine the 
+                                   distribution of opioid deaths across states
+                                   over the past twenty years. Having looked at 
+                                   this data, I also sought to look at the 
+                                   distribution of treatment centers to see if 
+                                   the treatment center distribution matches up 
+                                   with opioid death distribution: are the 
+                                   states that need the most attention getting 
+                                   the most attention?"),
+                         
+                         p("Following this, I analyzed the data for 
+                                   the state nearest and dearest to our hearts, 
+                                   Massachusetts. How does the distribution 
+                                   of opioid deaths in Massachusetts look and 
+                                   how are treatment centers distributed 
+                                   according to deaths per capita in 
+                                   different counties?"),
+                         
+                         p("Finally, I sought to create a model between factors of interest such as 
+                                   age and ethnicity and increases in opioid deaths over the past twenty years."),
+                         h1("The Data"),
+                         p("Data concerning the entire United States came from the CDC's Wonder Archive. Massachusetts-specific data came from
+                                   chapter55.digital.mass.gov."),
+                         p("My project code can be found on my",
+                           a("GitHub",
+                             href = "https://github.com/suruchiramanujan/final-project.git",)),
+                         h1("About Me"),
+                         p("My name is Suruchi Ramanujan and I am a 
+                                   senior in Quincy House studying 
+                                   Molecular and Cellular Biology. In my free time, 
+                                   I enjoy performing Indian Classical dance, running, 
+                                   and grinding through my DataCamp exercises."),
+                         p("You can reach me at ",
+                           a("suruchi_ramanujan@college.harvard.edu",
+                             href = "mailto: suruchi_ramanujan@college.harvard.edu",),
+                           "or on ",
+                           a("LinkedIn",
+                             href = "https://www.linkedin.com/in/suruchi-ramanujan-791007115/")))
 ))
 server <- function(input, output, session) {
     output$overdose_counts <- renderPlotly({
