@@ -10,6 +10,9 @@ library(shinythemes)
 library(ggthemes)
 library(maps)
 library(leaflet)
+library(plotly)
+library(DT)
+library(broom)
 
 ### Read in Data
 
@@ -113,16 +116,66 @@ full_data <- us_county %>%
   mutate(percap_2006.10 = total_deaths_2006.10/Pop) %>%
   mutate(percap_2011.15 = total_deaths_2011.15/Pop) 
 
+ageopioidmodel <- read_csv("U.S. age vs. opioid deaths.csv", col_types = "dcc") %>%
+  clean_names() %>%
+  na.omit() %>%
+  filter(age_range != "Total") %>%
+  mutate(age_range = as.factor(age_range)) %>%
+  mutate(number_of_deaths = as.numeric(number_of_deaths))
+
+raceopioidmodel <- read_csv("U.S. race vs. opioid deaths.csv", col_types = "dcc") %>%
+  clean_names() %>%
+  na.omit() %>%
+  mutate(race = as.factor(race)) %>%
+  mutate(opioid_deaths = as.numeric(opioid_deaths))
+
+ageandracemodel <- ageopioidmodel %>%
+  na.omit() %>%
+  full_join(raceopioidmodel, by = "year") %>%
+  rename(deathsbyage = number_of_deaths) %>%
+  rename(deathsbyrace = opioid_deaths)
+
+deathsbycommondiseases <- read_csv("deathsbycommondiseases.csv", col_types = "ldddddd") %>%
+  select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, `Deaths by CVD`) %>%
+  mutate(`Proportion of 1999 Deaths by Cancer` = `Deaths by Cancer`/549829) %>%
+  mutate(`Proportion of 1999 Deaths by Drugs` = `Deaths by Drug Overdose`/19122) %>%
+  mutate(`Proportion of 1999 Deaths by CVD` = `Deaths by CVD`/949900)
+
+totaldeathsbycommondiseases <- deathsbycommondiseases %>%
+  select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, `Deaths by CVD`) %>%
+  pivot_longer(.,
+               cols = starts_with("Deaths by"),
+               names_prefix = "Deaths by",
+               values_to = "Deaths") %>%
+  rename(`Cause of Death` = name)
+
+propdeathsbycommondiseases <- deathsbycommondiseases %>%
+  select(Year, `Proportion of 1999 Deaths by Cancer`, 
+             `Proportion of 1999 Deaths by Drugs`, 
+             `Proportion of 1999 Deaths by CVD`) %>%
+  pivot_longer(., cols = starts_with("Proportion of"), names_prefix = "Proportion of 1999 Deaths by", values_to = "Prop.Deaths") %>%
+  rename(`Cause of Death` = name)
+
+mavsus_death <- read_csv("MAAgeAdjustedOpioidRelatedDeathRateByYear.csv", col_types = "cdc")
+
+mavsus_death <- mavsus_death %>%
+  group_by(Geography) %>%
+  filter (Year != "2015") %>%
+  filter (Year != "1999") %>%
+  rename(deathperhundredthousand =`Age-Adjusted Opioid-Related Death Rate per 100,000 People`)
+
 ui <- navbarPage(theme = shinytheme("flatly"),
                  "Opioid Trends Across the United States",
                  tabPanel("About",
-                          column(7,
+                          column(9,
                                  h1("Background"),
                                  p("Opioids have been prescribed for pain management for many decades, 
                                  although they are effective at treating acute, not chronic pain. 
                                    In treating chronic pain, opioids can be more harmful than useful. 
                                    Opioids are cheap, but have high rates of addiction and can lead to 
-                                   dependence and ultimately death from overdose."),
+                                   dependence and ultimately death from overdose.Since the 1990s, the United States
+                                   has experienced a crisis created by overprescription of opioids. Thousands die yearly
+                                   from uncontrollable overuse."),
                                  
                                  p("The plan for this project is to examine the 
                                    distribution of opioid deaths across states
@@ -141,9 +194,12 @@ ui <- navbarPage(theme = shinytheme("flatly"),
                                    how are treatment centers distributed 
                                    according to deaths per capita in 
                                    different counties?"),
-                                
+                                 
+                                 p("Finally, I sought to create a model between factors of interest such as 
+                                   age and ethnicity and increases in opioid deaths over the past twenty years."),
                                  h1("The Data"),
-                                 p("Most data comes from ________"),
+                                 p("Data concerning the entire United States came from the CDC's Wonder Archive. Massachusetts-specific data came from
+                                   chapter55.digital.mass.gov."),
                                  p("My project code can be found on my",
                                    a("GitHub",
                                      href = "https://github.com/suruchiramanujan/final-project.git",)),
@@ -156,65 +212,115 @@ ui <- navbarPage(theme = shinytheme("flatly"),
                                  p("You can reach me at ",
                                    a("suruchi_ramanujan@college.harvard.edu",
                                      href = "mailto: suruchi_ramanujan@college.harvard.edu",),
-                                   "or ",
+                                   "or on ",
                                    a("LinkedIn",
                                      href = "https://www.linkedin.com/in/suruchi-ramanujan-791007115/")))),
                           
                  tabPanel("United States Opioid Data",
-                          h1("Opioid Deaths in America"),
-                            column(7,
-                                   p("The graph below shows CDC data for the number of deaths per year for the two top leading causes of death 
+                        h1("Opioid Deaths in America"),
+                        h3("Comparing Deaths from Opioid Overdose to Deaths from the Leading Causes of Death in America"),
+                        fixedRow(column(7, plotlyOutput("commondiseases", height = "100%"), inline = TRUE),
+                        column(3, offset = 1,           
+                        p("The graph to the left shows CDC data for the number of deaths per year for the two top leading causes of death 
                                      in the United States: heart disease or cardiovascular disease (CVD) and cancer. 
-                                     Simultaneously, I have graphed the number of deaths per year caused by opioid overdoses in the United States."),
-                                 imageOutput("commondiseases", height = "100%"),
-                                 p("While this graph may make it look like opioids do not have as great a toll on the United States
-                                   as other diseases like cancer and cardiovascular disease, just because fewer people are affected
-                                   does not mean the issue is less important. In fact, if we normalize the number of deaths due to
-                                   opioid use to those seen in 1990, we see the greatest proportion change in deaths by opioid overdose
+                                     Simultaneously, I have graphed the number of deaths per year caused by opioid overdoses in the United States. 
+                                     While this graph may make it look like opioids do not have as great a toll on the United States
+                                     as other diseases like cancer and cardiovascular disease, just because fewer people are affected
+                                     does not mean the issue is less important."))),
+                        br(),
+                        h3("Comparing Deaths from Opioid Overdose to Deaths from the Leading Causes of Death in America (Normalized to 1990)"),
+                        fixedRow(column(7, plotlyOutput("propcommondiseases", height = "100%", width = "100%"), inline = TRUE),        
+                        column(3, offset = 1,  
+                        p("In fact, if we normalize the number of deaths due to
+                                   opioid use to those seen in 1990 as seen to the left, we see the greatest proportion change in deaths by opioid overdose
                                    compared to cancer and cardiovascular disease as shown below. Thus, even though we are slowly making the changes
                                    needed to curtail cancer and cardiovascular disease deaths, we are still seeing sharp increases in death by
-                                   opioid overdose."),
-                                 imageOutput("propcommondiseases", height = "100%", width = "100%"),
-                                 p("However, the distribution of opioid overdose deaths per capita differs based on state.
-                                   The graph below shows how opioid deaths per capita changed between 1998 and 2018."),
+                                   opioid overdose."))),
+                       
                                    fluidPage(
                   titlePanel("Drug Overdoses Per Capita by State Over Time"),
                   sliderTextInput("Year", "Year", 
                             from_min = 1998,
                             from_max =2018,
                             choices = levels(as.factor(death_by_year_and_state$Year))),
-                plotOutput("overdose_counts", width = "100%"),
-                               p("Unfortunately, the distribution of treatment centers per capita does not match up with the number of opioid deaths per capita. 
-                                 Please note that the data for treatment centers used to create the map below is more recent than the most recent opioid death data."),
-                h1("Distribution of Opioid Treatment Centers in 2020 (Per Capita)"),
-                plotOutput("treatment_centers_per_capita")
-                                )
+                  fixedRow(column(7, plotlyOutput("overdose_counts", width = "100%", inline = TRUE)),
+                column(3, offset = 1,
+                p("We cannot assume that the distribution of opioid overdose deaths per capita differs is uniform. There is certainly variation based on state.
+                                   The graph to the left shows how opioid deaths per capita changed between 1998 and 2018. Some states such as West Virginia
+                  have undergone immense changes in opioid deaths per capita over the past 20 years, beginning with some of the lowest death rates in 1998 and rising to 
+                  have the highest state death rate per capita in 2018.")))),
+                br(),
+                
+                h3("Distribution of Opioid Treatment Centers in 2020 (Per Capita)"),
+                fixedRow(column(7,plotlyOutput("treatment_centers_per_capita")),
+                column(3, offset = 1,
+                       p("Unfortunately, the distribution of treatment centers per capita does not match up with the number of opioid deaths per capita. Even if we just
+                       compare 2018 data, we will see that states like New Hampshire have few opioid treatment centers despite having some of the highest rates of opioid deaths
+                       per capita. Furthermore, treatment centers seem to be concentrated on the East of the country.Please note that the data for treatment centers used to create the map 
+                         to the left is more recent than the most recent opioid death data."))
                )),
 tabPanel("Massachusetts Opioid Data",
          # find a way to increase width
-         column(7, 
-                imageOutput("madeathrates", height = "100%"),
+             fixedRow(column(7,  plotlyOutput("madeathrates", height = "100%")),
+                      column(3, offset = 1, p("The graph to the left, created using data from chapter55.digital.mass.gov shows that on average, the rate of opioid deaths per year 
+                            in Massachusetts is higher than that of the United States. Despite efforts at expanding healthcare (for example, through Romneycare),
+                               opioid deaths stay consistently higher than the national average"))),
                 h2("Opioid Deaths in Massachusetts by County over Time"),
-                
+         br(),
                 # create drop down for user selecting time period
                 
-                sidebarPanel(
-                  selectInput("select", 
+              fixedRow(column(7,  sidebarPanel(
+                  selectInput("plot_type", 
                               label = h3("Select a time period"),
-                              choices = list("2001-2005", "2006-2010", "2011-2015")),
+                              choices = c("2001-2005", "2006-2010", "2011-2015"))),
                 mainPanel(
-                  plotOutput("plot_1"),
-                  plotOutput("plot_2"),
-                  plotOutput("plot_3")),
+                  plotlyOutput("plot_1", inline = TRUE))),
+                column(3, offset = 1, p("The graph to the left shows the distribution of opioid deaths per capita across the counties of Massachusetts for three different 
+                                        time periods between 2000 and 2015. Having looked at the data for total opioid deaths (not per data), deaths seem to be concentrated 
+                                        in Sussex county, although this makes sense given the high population of Sussex. Thus, in order to better demonstrate the distribution
+                                        of deaths, I chose to map the total deaths per capita by county."))),
                 h2("Distribution of Opioid Treatment Centers Across Massachusetts"),
-                fluidPage(
-                  leafletOutput("masstreat")))
-         
-         )))
-
+                fixedRow(column(7, fluidPage(
+                  leafletOutput("masstreat"))),
+                column(3, offset = 1, p("Similar to what we saw with the graph of the entire United States, treatment centers are not distributed based on the locations of the greatest number 
+                                        of deaths per capita. Here, we see a high concentration of treatment centers in the northeast corner of the state and in the west rather than in the southwest, 
+                                        where Massachusetts experiences the highest rates of opioid deaths.")))),
+tabPanel("Model",
+         h1("Model"),
+         sidebarPanel(
+           helpText("Choose a factor to see how opioid deaths change over time based on age and race."),
+           selectInput("typeoffactor", 
+                       label = h3("Select a factor"),
+                       choices = c("Age", "Race"))),
+         mainPanel(
+           plotOutput("ageandrace", inline = TRUE)),
+           br(),
+          p("The models above demonstrate how opioid deaths have changed over time based on age group and race. 
+                  Based on age group data, it looks like the total number of opioid deaths amongst people in the age groups of
+                  25-34, 35-44, and 45-54 are similar. However, the numbers are increasing at the fastest rate amongst people between the ages of 
+                  25 and 34 as communicated by the highest coefficient.Thus, we must focus on addressing issues pertaining to this group.
+                  Examining the race data, it looks as though individuals are white at worst affected by the opioid crisis, with 
+                  both the highest number of deaths amongst this group, in addition to the greatest rate of increase in deaths amongst these individuals."),
+         br(),
+         br(),
+         sidebarPanel(
+           selectInput("Age Group", 
+                       label = h3("Select an Age Range"),
+                       choices = c("0-24", "25-34", "35-44", "45-54", "55+"))),
+         mainPanel(
+           DTOutput("coefage")),
+         br(),
+         br(),
+         sidebarPanel(
+           selectInput("Race", 
+                       label = h3("Select a Category of Race"),
+                       choices = c("White, Non-Hispanic", "Black, Non-Hispanic", "Hispanic"))),
+         mainPanel(
+           DTOutput("coefrace"))
+))
 server <- function(input, output, session) {
-    output$overdose_counts <- renderPlot({
-      death_by_year_and_state %>%
+    output$overdose_counts <- renderPlotly({
+      map_1 <- death_by_year_and_state %>%
       filter(Year == input$Year) %>%
         ggplot(aes(x = long, y = lat,
                              fill = `Crude Rate`, group = group)) + 
@@ -223,13 +329,17 @@ server <- function(input, output, session) {
         scale_fill_gradient(low = "white", high = "#CB454A") +
         guides(fill = guide_legend(nrow = 1)) + 
         theme(legend.position = "bottom")
-    }, width = 600, 
-    height = 450)
     
-    output$plot_1 <- renderPlot({
-    ggplot(data = full_data,
+      map_1 <- ggplotly(map_1)
+      })
+    
+    output$plot_1 <- renderPlotly({
+    plot_1 <- ggplot(data = full_data,
            mapping = aes(x = long, y = lat,
-                         fill = percap_2001.5,
+                         fill = case_when(
+                           input$plot_type == "2001-2005" ~ percap_2001.5,
+                           input$plot_type == "2006-2010" ~ percap_2006.10,
+                           input$plot_type == "2011-2015" ~ percap_2011.15),
                          group = group)) + 
       geom_polygon(color = "gray90", size = 0.05) + 
       theme_map() +
@@ -237,66 +347,51 @@ server <- function(input, output, session) {
                           breaks = c(0,20,40,60,80,100)) +
       guides(fill = guide_legend(nrow = 1)) + 
       theme(legend.position = "bottom")
-    }, width = 600, 
-    height = 450)
+   plot_1 <- ggplotly(plot_1) 
+   })
     
-    output$plot_2 <- renderPlot({
-      ggplot(data = full_data,
-             mapping = aes(x = long, y = lat,
-                           fill = percap_2006.10,
-                           group = group)) + 
-        geom_polygon(color = "gray90", size = 0.05) + 
-        theme_map() +
-        scale_fill_gradient(low = "white", high = "#CB454A",
-                            breaks = c(0,20,40,60,80,100)) +
-        guides(fill = guide_legend(nrow = 1)) + 
-        theme(legend.position = "bottom")
-    }, width = 600, 
-    height = 450)
+    output$madeathrates <- renderPlotly({
+     map_2 <- ggplot(mavsus_death, aes(x = Year, y = as.numeric(deathperhundredthousand), color = Geography)) +
+        geom_line() +
+        scale_color_viridis_d() +
+        theme_classic() +
+        labs(x = "Year",
+             y = "Deaths per 100,000",
+             title = "Comparison of Death Rates between Massachusetts and the United States",
+             subtitle = "Between the Years of 2000 and 2014") +
+        geom_point()
+     
+     map_2 <- ggplotly(map_2)
+    })
     
-    output$plot_3 <- renderPlot({
-      ggplot(data = full_data,
-             mapping = aes(x = long, y = lat,
-                           fill = percap_2011.15,
-                           group = group)) + 
-        geom_polygon(color = "gray90", size = 0.05) + 
-        theme_map() +
-        scale_fill_gradient(low = "white", high = "#CB454A",
-                            breaks = c(0,20,40,60,80,100)) +
-        guides(fill = guide_legend(nrow = 1)) + 
-        theme(legend.position = "bottom")
-    }, width = 600, 
-    height = 450)
+    output$commondiseases <- renderPlotly({
+     plot_2 <- ggplot(totaldeathsbycommondiseases, aes(x = Year, y = Deaths, color = `Cause of Death`)) +
+        geom_line() +
+        scale_color_viridis_d() +
+        theme_classic() +
+        labs(x = "Year",
+             y = "Total Number of Deaths in the United States") +
+        geom_point()
+     
+     plot_2 <- ggplotly(plot_2) 
+      
+      })
     
-    output$madeathrates <- renderImage({
-      # Return a list containing the filename
-      list(src = "plot_mavsus_death.gif",
-           contentType = 'image/gif',
-           width = 600,
-           height = 450,
-           alt = "This is alternate text"
-      )}, deleteFile = FALSE)
+    output$propcommondiseases <- renderPlotly({
+    plot_3 <- ggplot(propdeathsbycommondiseases, aes(x = Year, y = Prop.Deaths, color = `Cause of Death`)) +
+        geom_line() +
+        scale_color_viridis_d() +
+        theme_classic() +
+        labs(x = "Year",
+             y = "Proportion of 1999 Total Deaths in the United States") +
+        geom_point()
     
-    output$commondiseases <- renderImage({
-      # Return a list containing the filename
-      list(src = "plot_deathsbycommondiseases.gif",
-           contentType = 'image/gif',
-           width = 600,
-           height = 450,
-           alt = "This is alternate text"
-      )}, deleteFile = FALSE)
+    plot_3 <- ggplotly(plot_3)
     
-    output$propcommondiseases <- renderImage({
-      # Return a list containing the filename
-      list(src = "prop_deathsbycommondiseases.gif",
-           contentType = 'image/gif',
-           width = 600,
-           height = 450,
-           alt = "This is alternate text"
-      )}, deleteFile = FALSE)
+      })
     
-    output$treatment_centers_per_capita <- renderPlot({
-      ggplot(data = treatment_locations_map_per_cap,
+    output$treatment_centers_per_capita <- renderPlotly({
+    map_3 <- ggplot(data = treatment_locations_map_per_cap,
              mapping = aes(x = long, y = lat.y,
                            fill = count_per_pop, group = group)) + 
         geom_polygon(color = "gray90", size = 0.05) + 
@@ -307,9 +402,8 @@ server <- function(input, output, session) {
         theme(legend.position = "bottom") +
         labs(
              color = "Number of Treatment Centers in State Per Capita")
-      }, 
-      width = 600, 
-      height = 450)
+     map_3 <- ggplotly(map_3) 
+     })
     
     output$masstreat <- renderLeaflet ({
       leaflet(options = leafletOptions(dragging = TRUE,
@@ -320,5 +414,46 @@ server <- function(input, output, session) {
                        radius = 3,
                        label = ~`Program Name`)})
     
-}
+    
+    output$ageandrace <-  renderPlot({
+      if(input$typeoffactor == "Age"){
+      ggplot(ageandracemodel, aes(year, deathsbyage, color = age_range)) +
+      geom_point() +
+      scale_color_viridis_d() +
+      theme_classic() +
+      geom_smooth(method = "lm", se = FALSE) +
+      labs(x = "Year", y = "Number of Opioid Deaths in America", color = "Age Range")}
+      else{
+      ggplot(ageandracemodel, aes(year, deathsbyrace, color = race)) +
+        geom_point() +
+        scale_color_viridis_d() +
+        theme_classic() +
+        geom_smooth(method = "lm", se = FALSE) +
+        labs(x = "Year", y = "Number of Opioid Deaths in America", color = "Race")}
+    }, 
+    width = 600, 
+    height = 450)
+
+    output$coefage <- renderDT({
+      ageopioidmodel %>%
+        filter(age_range == input$`Age Group`) %>%
+        lm(number_of_deaths ~ year, data = .) %>% 
+        tidy(conf.int = TRUE) %>% 
+        select(term, estimate, conf.low, conf.high) %>%
+        rename(Term = term) %>%
+        rename(Coefficient = estimate) %>%
+        rename(`Lower End` = conf.low) %>%
+        rename(`Upper End` = conf.high)
+    })
+    output$coefrace <- renderDT({
+      raceopioidmodel %>%
+        filter(race == input$Race) %>%
+        lm(opioid_deaths ~ year, data = .) %>% 
+        tidy(conf.int = TRUE) %>% 
+        select(term, estimate, conf.low, conf.high) %>%
+        rename(Term = term) %>%
+        rename(Coefficient = estimate) %>%
+        rename(`Lower End` = conf.low) %>%
+        rename(`Upper End` = conf.high)
+    })}
 shinyApp(ui, server)

@@ -396,22 +396,26 @@ ageopioidmodel <- read_csv("U.S. age vs. opioid deaths.csv", col_types = "dcc") 
   mutate(age_range = as.factor(age_range)) %>%
     mutate(number_of_deaths = as.numeric(number_of_deaths))
 
-ggplot(ageopioidmodel, aes(year, number_of_deaths, color = age_range)) +
-  geom_point() +
-  scale_color_viridis_d() +
-  theme_classic() +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(x = "Year", y = "Number of Opioid Deaths in America", color = "Age Range")
-
-#raceopioid
-
 raceopioidmodel <- read_csv("U.S. race vs. opioid deaths.csv", col_types = "dcc") %>%
   clean_names() %>%
   na.omit() %>%
   mutate(race = as.factor(race)) %>%
   mutate(opioid_deaths = as.numeric(opioid_deaths))
 
-ggplot(raceopioidmodel, aes(year, opioid_deaths, color = race)) +
+ageandracemodel <- ageopioidmodel %>%
+  na.omit() %>%
+  full_join(raceopioidmodel, by = "year") %>%
+  rename(deathsbyage = number_of_deaths) %>%
+  rename(deathsbyrace = opioid_deaths)
+
+ggplot(ageandracemodel, aes(year, deathsbyage, color = age_range)) +
+  geom_point() +
+  scale_color_viridis_d() +
+  theme_classic() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Year", y = "Number of Opioid Deaths in America", color = "Age Range")
+
+ggplot(ageandracemodel, aes(year, deathsbyrace, color = race)) +
   geom_point() +
   scale_color_viridis_d() +
   theme_classic() +
@@ -420,8 +424,41 @@ ggplot(raceopioidmodel, aes(year, opioid_deaths, color = race)) +
 ```
 
 ```{r}
+# filtering data by race to show effects of time on deaths in each race group
 
-# filtering data by race/age
+death_vs_white <- raceopioidmodel %>%
+  filter(race == "White, Non-Hispanic")
+
+death_vs_white %>%
+    lm(opioid_deaths ~ year, data = .) %>% 
+    tidy(conf.int = TRUE) %>% 
+    select(term, estimate, conf.low, conf.high) %>%
+    rename(Coefficient = estimate) %>%
+    rename(`Lower End` = conf.low) %>%
+    rename(`Upper End` = conf.high) %>%
+    gt()
+
+death_vs_black <- raceopioidmodel %>%
+  filter(race == "Black, Non-Hispanic")
+
+death_vs_black %>%
+    lm(opioid_deaths ~ year, data = .) %>% 
+    tidy(conf.int = TRUE) %>% 
+    select(term, estimate, conf.low, conf.high)
+
+death_vs_hispanic <- raceopioidmodel %>%
+  filter(race == "Hispanic")
+
+death_vs_hispanic %>%
+    lm(opioid_deaths ~ year, data = .) %>% 
+    tidy(conf.int = TRUE) %>% 
+    select(term, estimate, conf.low, conf.high)
+```
+
+```{r}
+
+# filtering data by age to show effects of time on deaths in each age group
+
 ages0_24 <- ageopioidmodel %>%
   filter(age_range == "0-24")
 
@@ -462,14 +499,17 @@ ages55_up %>%
     tidy(conf.int = TRUE) %>% 
     select(term, estimate, conf.low, conf.high)
 
+# looking at average deaths in each age group
 
-# averageageopioidmodel <- ageopioidmodel %>%
-  # drop_na() %>%
-  # group_by(age_range) %>%
-  # summarize(mean_deaths = mean(number_of_deaths))
+averageageopioidbyage <- ageopioidmodel %>%
+  drop_na() %>%
+  group_by(age_range) %>%
+  summarize(mean_deaths = mean(number_of_deaths))
 
-# averageageopioid_model <- lm(mean_deaths ~ age_range, data = averageageopioidmodel)
-# averageageopioid_model %>%
-  # tidy(conf.int = TRUE) %>%
-  # select(term, estimate, conf.low, conf.high)
+# showing effects of being in each age group on number of deaths idt this makes sense
+
+averageageopioid_model <- lm(number_of_deaths ~ age_range, data = ageopioidmodel)
+averageageopioid_model %>%
+  tidy(conf.int = TRUE) %>%
+  select(term, estimate, conf.low, conf.high)
 ```
