@@ -201,8 +201,7 @@ theme_classic() +
        y = "Deaths per 100,000",
        title = "Comparison of Death Rates between Massachusetts and the United States",
        subtitle = "Between the Years of 2000 and 2014") +
-  geom_point() +
-  transition_reveal(Year)
+  geom_point()
 
 ```
 
@@ -396,7 +395,7 @@ leaflet(options = leafletOptions(dragging = TRUE,
 
 ageopioidmodel <- read_csv("U.S. age vs. opioid deaths.csv", col_types = "dcc") %>%
   clean_names() %>%
-  na.omit() %>%
+  filter(number_of_deaths != "N/A") %>%
   filter(age_range != "Total") %>%
   mutate(age_range = as.factor(age_range)) %>%
     mutate(number_of_deaths = as.numeric(number_of_deaths))

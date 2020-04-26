@@ -125,7 +125,7 @@ full_data <- us_county %>%
 
 ageopioidmodel <- read_csv("U.S. age vs. opioid deaths.csv", col_types = "dcc") %>%
   clean_names() %>%
-  na.omit() %>%
+  filter(number_of_deaths != "N/A") %>%
   filter(age_range != "Total") %>%
   mutate(age_range = as.factor(age_range)) %>%
   mutate(number_of_deaths = as.numeric(number_of_deaths))
@@ -143,7 +143,6 @@ ageandracemodel <- ageopioidmodel %>%
   rename(deathsbyrace = opioid_deaths)
 
 deathsbycommondiseases <- read_csv("deathsbycommondiseases.csv", col_types = "ldddddd") %>%
-  na.omit() %>%
   select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, `Deaths by CVD`) %>%
   mutate(`Proportion of 1999 Deaths by Cancer` = `Deaths by Cancer`/549829) %>%
   mutate(`Proportion of 1999 Deaths by Drugs` = `Deaths by Drug Overdose`/19122) %>%
