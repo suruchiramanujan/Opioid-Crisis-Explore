@@ -18,71 +18,44 @@ library(broom)
 
 # https://wonder.cdc.gov/controller/datarequest/D77;jsessionid=3F8131C534663BDD3F79E66994FCF12E
 
-death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv", 
-                                    col_types = "lcdccddddc") %>%
-  filter(`Crude Rate` != "Unreliable")
+death_by_year_and_state <- read_rds("death_by_year_and_state.rds")
 
-us_state <- map_data("state") %>%
-  rename(state_full = region)
-
-death_by_year_and_state <- death_by_year_and_state %>%
-  filter(`UCD - Drug/Alcohol Induced Code` == "D") %>%
-  rename(state_full = State) %>%
-  mutate(state_full = tolower(state_full)) %>%
-  left_join(us_state, by = "state_full" ) %>%
-  drop_na(`Crude Rate`)
-
-death_by_year_and_state$`Crude Rate` <-as.numeric(death_by_year_and_state$`Crude Rate`)
-
-treatment_locations <- read_csv("Drug Treatment Centers.csv", col_types = "ccccccccc") %>%
-  select(`Program Name`, Street, City, State, Zipcode)
+treatment_locations <- read_rds("treatment_locations.rds")
 
 # state populations
-
-state_pop <- read_csv("State Population Estimate.csv", col_types = "dccdcdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd") %>%
-  rename(state_full = NAME) %>%
-  mutate(state_full = tolower(state_full))
-
+#
+# state_pop <- read_rds("state_pop.rds")
+#
+# us_state <- map_data("state") %>%
+#   rename(state_full = region)
+#
 # https://simplemaps.com/data/us-cities
 
-longlatinfo <- read_csv("uscitieslonglat.csv", col_types = "ccccdcccddddcllcdcd") %>%
-  rename(City = city) %>%
-  rename(State = state_id)
+longlatinfo <- read_rds("longlatinfo.rds")
 
-treatment_locations_map <- treatment_locations %>%
-  left_join(longlatinfo, by = c("City", "State")) %>%
-  group_by(State) %>%
-  mutate(count = n()) %>%
-  mutate(state_name = tolower(state_name)) %>%
-  rename(state_full = state_name) %>%
-  left_join(us_state, by = "state_full") 
-
-treatment_locations_map_per_cap <- treatment_locations_map %>%
-  left_join(state_pop, by = "state_full") %>%
-  group_by(State) %>%
-  mutate(count_per_pop = n()/POPESTIMATE2019)
-
+# treatment_locations_map <- treatment_locations %>%
+#   left_join(longlatinfo, by = c("City", "State")) %>%
+#   group_by(State) %>%
+#   mutate(count = n()) %>%
+#   mutate(state_name = tolower(state_name)) %>%
+#   rename(state_full = state_name) %>%
+#   left_join(us_state, by = "state_full")
+#
+# treatment_locations_map_per_cap <- treatment_locations_map %>%
+#   left_join(state_pop, by = "state_full") %>%
+#   group_by(State) %>%
+#   mutate(count_per_pop = n()/POPESTIMATE2019)
+# 
 treatment_locations_map_mas <- treatment_locations %>%
   left_join(longlatinfo, by = c("City", "State")) %>%
   filter(State == "MA") %>%
   drop_na()
 
-counties <- read_csv("zip_codes_states.csv", col_types = "dddccc") %>%
-  na.omit() %>%
-  filter(state == "MA") %>%
-  rename(County = county) %>%
-  rename(Municipality = city)
+counties <- read_rds("counties.rds")
 
-madeathbycounty <- read_csv("MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv", 
-                            col_types = "cdcdddc") %>%
-  na.omit()
+madeathbycounty <- read_rds("madeathbycounty.rds")
 
-countypop <- read_csv("countypop.csv", col_types = "cdd") %>%
-  na.omit() %>%
-  mutate(Pop = Pop/100000) %>%
-  rename(subregion = CTYNAME) %>%
-  mutate(subregion = tolower(subregion)) %>%
-  select(subregion, Pop)
+countypop <- read_rds("countypop.rds")
 
 madeathbycountywlonglat <- madeathbycounty %>%
   left_join(counties, by = "Municipality")
@@ -110,10 +83,7 @@ us_county <- map_data("county") %>%
 
 # https://www.indexmundi.com/facts/united-states/quick-facts/massachusetts/percent-of-people-of-all-ages-in-poverty#table
 
-povertybycounty <- read_csv("PovertyByCounty.csv", col_types = "cd") %>%
-  na.omit() %>%
-  rename(subregion = County) %>%
-  mutate(subregion = tolower(subregion))
+povertybycounty <- read_rds("povertybycounty.rds")
 
 full_data <- us_county %>%
   left_join(madeathbycountywlonglat, by = "subregion") %>%
@@ -121,20 +91,11 @@ full_data <- us_county %>%
   left_join(povertybycounty, by = "subregion") %>%
   mutate(percap_2001.5 = total_deaths_2001.5/Pop) %>%
   mutate(percap_2006.10 = total_deaths_2006.10/Pop) %>%
-  mutate(percap_2011.15 = total_deaths_2011.15/Pop) 
+  mutate(percap_2011.15 = total_deaths_2011.15/Pop)
 
-ageopioidmodel <- read_csv("U.S. age vs. opioid deaths.csv", col_types = "dcc") %>%
-  clean_names() %>%
-  filter(number_of_deaths != "N/A") %>%
-  filter(age_range != "Total") %>%
-  mutate(age_range = as.factor(age_range)) %>%
-  mutate(number_of_deaths = as.numeric(number_of_deaths))
+ageopioidmodel <- read_rds("ageopioidmodel.rds")
 
-raceopioidmodel <- read_csv("U.S. race vs. opioid deaths.csv", col_types = "dcc") %>%
-  clean_names() %>%
-  na.omit() %>%
-  mutate(race = as.factor(race)) %>%
-  mutate(opioid_deaths = as.numeric(opioid_deaths))
+raceopioidmodel <- read_rds("raceopioidmodel.rds")
 
 ageandracemodel <- ageopioidmodel %>%
   na.omit() %>%
@@ -142,11 +103,7 @@ ageandracemodel <- ageopioidmodel %>%
   rename(deathsbyage = number_of_deaths) %>%
   rename(deathsbyrace = opioid_deaths)
 
-deathsbycommondiseases <- read_csv("deathsbycommondiseases.csv", col_types = "ldddddd") %>%
-  select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, `Deaths by CVD`) %>%
-  mutate(`Proportion of 1999 Deaths by Cancer` = `Deaths by Cancer`/549829) %>%
-  mutate(`Proportion of 1999 Deaths by Drugs` = `Deaths by Drug Overdose`/19122) %>%
-  mutate(`Proportion of 1999 Deaths by CVD` = `Deaths by CVD`/949900)
+deathsbycommondiseases <- read_rds("deathsbycommondiseases.rds")
 
 totaldeathsbycommondiseases <- deathsbycommondiseases %>%
   select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, `Deaths by CVD`) %>%
@@ -157,14 +114,13 @@ totaldeathsbycommondiseases <- deathsbycommondiseases %>%
   rename(`Cause of Death` = name)
 
 propdeathsbycommondiseases <- deathsbycommondiseases %>%
-  select(Year, `Proportion of 1999 Deaths by Cancer`, 
-             `Proportion of 1999 Deaths by Drugs`, 
+  select(Year, `Proportion of 1999 Deaths by Cancer`,
+             `Proportion of 1999 Deaths by Drugs`,
              `Proportion of 1999 Deaths by CVD`) %>%
   pivot_longer(., cols = starts_with("Proportion of"), names_prefix = "Proportion of 1999 Deaths by", values_to = "Prop.Deaths") %>%
   rename(`Cause of Death` = name)
 
-mavsus_death <- read_csv("MAAgeAdjustedOpioidRelatedDeathRateByYear.csv", col_types = "cdc") %>%
-  na.omit()
+mavsus_death <- read_rds("mavsus_death.rds")
 
 mavsus_death <- mavsus_death %>%
   group_by(Geography) %>%
@@ -217,7 +173,7 @@ ui <- navbarPage(theme = shinytheme("flatly"),
                          to the left is more recent than the most recent opioid death data."))
                )),
 tabPanel("Massachusetts Opioid Data",
-         # find a way to increase width
+         h1("Comparison of Death Rates between Massachusetts and the United States Between the Years of 2000 and 2014"),
              fixedRow(column(7,  plotlyOutput("madeathrates", height = "100%")),
                       column(3, offset = 1, p("The graph to the left, created using data from chapter55.digital.mass.gov shows that on average, the rate of opioid deaths per year 
                             in Massachusetts is higher than that of the United States. Despite efforts at expanding healthcare (for example, through Romneycare),
@@ -244,14 +200,13 @@ tabPanel("Massachusetts Opioid Data",
                                         where Massachusetts experiences the highest rates of opioid deaths.")))),
 tabPanel("Model",
          h1("Model"),
-         sidebarPanel(
+         fixedRow(sidebarPanel(
            helpText("Choose a factor to see how opioid deaths change over time based on age and race."),
            selectInput("typeoffactor", 
                        label = h3("Select a factor"),
                        choices = c("Age", "Race"))),
          mainPanel(
-           plotOutput("ageandrace", inline = TRUE)),
-           br(),
+           plotOutput("ageandrace"))),
           p("The models above demonstrate how opioid deaths have changed over time based on age group and race. 
                   Based on age group data, it looks like the total number of opioid deaths amongst people in the age groups of
                   25-34, 35-44, and 45-54 are similar. However, the numbers are increasing at the fastest rate amongst people between the ages of 
@@ -336,7 +291,8 @@ server <- function(input, output, session) {
         guides(fill = guide_legend(nrow = 1)) + 
         theme(legend.position = "bottom")
     
-      map_1 <- ggplotly(map_1)
+      map_1 <- ggplotly(map_1) %>%
+        layout(showlegend=T)
       })
     
     output$plot_1 <- renderPlotly({
@@ -346,14 +302,16 @@ server <- function(input, output, session) {
                            input$plot_type == "2001-2005" ~ percap_2001.5,
                            input$plot_type == "2006-2010" ~ percap_2006.10,
                            input$plot_type == "2011-2015" ~ percap_2011.15),
-                         group = group)) + 
-      geom_polygon(color = "gray90", size = 0.05) + 
+                         group = group)) +
+      geom_polygon(color = "gray90", size = 0.05) +
       theme_map() +
-      scale_fill_gradient(low = "white", high = "#CB454A",
+      scale_fill_gradient(name = "Number of Opioid Deaths per Capita",
+                          low = "white", high = "#CB454A",
                           breaks = c(0,20,40,60,80,100)) +
-      guides(fill = guide_legend(nrow = 1)) + 
-      theme(legend.position = "bottom")
-   plot_1 <- ggplotly(plot_1) 
+      guides(fill = guide_legend(nrow = 1)) +
+      theme(legend.position = "left")
+   plot_1 <- ggplotly(plot_1) %>%
+     layout(showlegend=T)
    })
     
     output$madeathrates <- renderPlotly({
@@ -362,12 +320,11 @@ server <- function(input, output, session) {
         scale_color_viridis_d() +
         theme_classic() +
         labs(x = "Year",
-             y = "Deaths per 100,000",
-             title = "Comparison of Death Rates between Massachusetts and the United States",
-             subtitle = "Between the Years of 2000 and 2014") +
+             y = "Deaths per 100,000") +
         geom_point()
-     
-     map_2 <- ggplotly(map_2)
+
+     map_2 <- ggplotly(map_2) %>%
+       layout(showlegend=T)
     })
     
     output$commondiseases <- renderPlotly({
@@ -378,8 +335,9 @@ server <- function(input, output, session) {
         labs(x = "Year",
              y = "Total Number of Deaths in the United States") +
         geom_point()
-     
-     plot_2 <- ggplotly(plot_2) 
+
+     plot_2 <- ggplotly(plot_2) %>%
+       layout(showlegend=T)
       
       })
     
@@ -391,34 +349,38 @@ server <- function(input, output, session) {
         labs(x = "Year",
              y = "Proportion of 1999 Total Deaths in the United States") +
         geom_point()
-    
-    plot_3 <- ggplotly(plot_3)
+
+    plot_3 <- ggplotly(plot_3) %>%
+      layout(showlegend=T)
     
       })
     
     output$treatment_centers_per_capita <- renderPlotly({
-    map_3 <- ggplot(data = treatment_locations_map_per_cap,
-             mapping = aes(x = long, y = lat.y,
-                           fill = count_per_pop, group = group)) + 
-        geom_polygon(color = "gray90", size = 0.05) + 
-        theme_map() +
-        scale_fill_gradient(low = "white", high = "#CB454A",
-                            breaks = c(0,20,40,60,80,120)) +
-        guides(fill = guide_legend(nrow = 1)) + 
-        theme(legend.position = "bottom") +
-        labs(
-             color = "Number of Treatment Centers in State Per Capita")
-     map_3 <- ggplotly(map_3) 
+    # map_3 <- ggplot(data = treatment_locations_map_per_cap,
+    #          mapping = aes(x = long, y = lat.y,
+    #                        fill = count_per_pop, group = group)) + 
+    #     geom_polygon(color = "gray90", size = 0.05) + 
+    #     theme_map() +
+    #     scale_fill_gradient(name = "Number of Treatment Centers Per Capita",
+    #                         low = "white", high = "#CB454A",
+    #                         breaks = c(0,20,40,60,80,120)) +
+    #     guides(fill = guide_legend(nrow = 1)) + 
+    #     theme(legend.position = "bottom") +
+    #     labs(
+    #          color = "Number of Treatment Centers in State Per Capita")
+    #  map_3 <- ggplotly(map_3) %>%
+    #    layout(showlegend=T)
      })
     
     output$masstreat <- renderLeaflet ({
       leaflet(options = leafletOptions(dragging = TRUE,
-                                     minZoom = 8, 
+                                     minZoom = 8,
                                      maxZoom = 9)) %>%
       addProviderTiles("CartoDB") %>%
       addCircleMarkers(data = treatment_locations_map_mas,
                        radius = 3,
-                       label = ~`Program Name`)})
+                       label = ~`Program Name`)
+      })
     
     
     output$ageandrace <-  renderPlot({
@@ -428,23 +390,23 @@ server <- function(input, output, session) {
       scale_color_viridis_d() +
       theme_classic() +
       geom_smooth(method = "lm", se = FALSE) +
-      labs(x = "Year", y = "Number of Opioid Deaths in America", color = "Age Range")}
+      labs(title = "Cumulative Number of Opioid Deaths by Age Range",
+           x = "Year", y = "Number of Opioid Deaths in America", color = "Age Range")}
       else{
       ggplot(ageandracemodel, aes(year, deathsbyrace, color = race)) +
         geom_point() +
         scale_color_viridis_d() +
         theme_classic() +
         geom_smooth(method = "lm", se = FALSE) +
-        labs(x = "Year", y = "Number of Opioid Deaths in America", color = "Race")}
-    }, 
-    width = 600, 
-    height = 450)
+        labs(title = "Cumulative Number of Opioid Deaths by Race",
+             x = "Year", y = "Number of Opioid Deaths in America", color = "Race")}
+    })
 
     output$coefage <- renderDT({
       ageopioidmodel %>%
         filter(age_range == input$`Age Group`) %>%
-        lm(number_of_deaths ~ year, data = .) %>% 
-        tidy(conf.int = TRUE) %>% 
+        lm(number_of_deaths ~ year, data = .) %>%
+        tidy(conf.int = TRUE) %>%
         select(term, estimate, conf.low, conf.high) %>%
         rename(Term = term) %>%
         rename(Coefficient = estimate) %>%
@@ -454,12 +416,12 @@ server <- function(input, output, session) {
     output$coefrace <- renderDT({
       raceopioidmodel %>%
         filter(race == input$Race) %>%
-        lm(opioid_deaths ~ year, data = .) %>% 
-        tidy(conf.int = TRUE) %>% 
+        lm(opioid_deaths ~ year, data = .) %>%
+        tidy(conf.int = TRUE) %>%
         select(term, estimate, conf.low, conf.high) %>%
         rename(Term = term) %>%
         rename(Coefficient = estimate) %>%
         rename(`Lower End` = conf.low) %>%
         rename(`Upper End` = conf.high)
-    })}
+  })}
 shinyApp(ui, server)
