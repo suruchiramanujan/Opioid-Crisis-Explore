@@ -19,7 +19,8 @@ library(broom)
 # https://wonder.cdc.gov/controller/datarequest/D77;jsessionid=3F8131C534663BDD3F79E66994FCF12E
 
 death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv", 
-                                    col_types = "lcdccddddc")
+                                    col_types = "lcdccddddc") %>%
+  filter(`Crude Rate` != "Unreliable")
 
 us_state <- map_data("state") %>%
   rename(state_full = region)
@@ -67,14 +68,17 @@ treatment_locations_map_mas <- treatment_locations %>%
   drop_na()
 
 counties <- read_csv("zip_codes_states.csv", col_types = "dddccc") %>%
+  na.omit() %>%
   filter(state == "MA") %>%
   rename(County = county) %>%
   rename(Municipality = city)
 
 madeathbycounty <- read_csv("MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv", 
-                            col_types = "cdcdddc")
+                            col_types = "cdcdddc") %>%
+  na.omit()
 
-countypop <- read_csv("countypop.csv", col_types = "cdcdddc") %>%
+countypop <- read_csv("countypop.csv", col_types = "cdd") %>%
+  na.omit() %>%
   mutate(Pop = Pop/100000) %>%
   rename(subregion = CTYNAME) %>%
   mutate(subregion = tolower(subregion)) %>%
@@ -107,6 +111,7 @@ us_county <- map_data("county") %>%
 # https://www.indexmundi.com/facts/united-states/quick-facts/massachusetts/percent-of-people-of-all-ages-in-poverty#table
 
 povertybycounty <- read_csv("PovertyByCounty.csv", col_types = "cd") %>%
+  na.omit() %>%
   rename(subregion = County) %>%
   mutate(subregion = tolower(subregion))
 
@@ -138,6 +143,7 @@ ageandracemodel <- ageopioidmodel %>%
   rename(deathsbyrace = opioid_deaths)
 
 deathsbycommondiseases <- read_csv("deathsbycommondiseases.csv", col_types = "ldddddd") %>%
+  na.omit() %>%
   select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, `Deaths by CVD`) %>%
   mutate(`Proportion of 1999 Deaths by Cancer` = `Deaths by Cancer`/549829) %>%
   mutate(`Proportion of 1999 Deaths by Drugs` = `Deaths by Drug Overdose`/19122) %>%
@@ -158,7 +164,8 @@ propdeathsbycommondiseases <- deathsbycommondiseases %>%
   pivot_longer(., cols = starts_with("Proportion of"), names_prefix = "Proportion of 1999 Deaths by", values_to = "Prop.Deaths") %>%
   rename(`Cause of Death` = name)
 
-mavsus_death <- read_csv("MAAgeAdjustedOpioidRelatedDeathRateByYear.csv", col_types = "cdc")
+mavsus_death <- read_csv("MAAgeAdjustedOpioidRelatedDeathRateByYear.csv", col_types = "cdc") %>%
+  na.omit()
 
 mavsus_death <- mavsus_death %>%
   group_by(Geography) %>%

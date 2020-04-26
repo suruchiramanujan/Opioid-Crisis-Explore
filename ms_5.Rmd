@@ -74,7 +74,8 @@ prop_deathsbycommondiseases <- ggplot(propdeathsbycommondiseases, aes(x = Year, 
 # https://wonder.cdc.gov/controller/datarequest/D77;jsessionid=3F8131C534663BDD3F79E66994FCF12E
 
 death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv", 
-                                    col_types = "lcdccddddc")
+                                    col_types = "lcdccddddc") %>%
+  filter(`Crude Rate` != "Unreliable")
 
 us_state <- map_data("state") %>%
   rename(state_full = region)
@@ -216,7 +217,7 @@ madeathbycounty <- read_csv("MAAverageAnnualOpioidRelatedDeathRateper100,000Peop
                             col_types = "cdcdddc")
 
 countypop <- read_csv("countypop.csv",
-                      col_types = "cd") %>%
+                      col_types = "cdd") %>%
   mutate(Pop = Pop/100000) %>%
   rename(subregion = CTYNAME) %>%
   mutate(subregion = tolower(subregion)) %>%
