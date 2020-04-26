@@ -58,8 +58,6 @@ plot_deathsbycommondiseases <- ggplot(totaldeathsbycommondiseases, aes(x = Year,
   geom_point() +
   transition_reveal(Year)
 
-anim_save("plot_deathsbycommondiseases.gif", plot_deathsbycommondiseases)
-
 prop_deathsbycommondiseases <- ggplot(propdeathsbycommondiseases, aes(x = Year, y = Prop.Deaths, color = `Cause of Death`)) +
   geom_line() +
   scale_color_viridis_d() +
@@ -68,8 +66,6 @@ prop_deathsbycommondiseases <- ggplot(propdeathsbycommondiseases, aes(x = Year, 
        y = "Proportion of 1999 Total Deaths in the United States") +
   geom_point() +
   transition_reveal(Year)
-
-anim_save("prop_deathsbycommondiseases.gif", prop_deathsbycommondiseases)
   
 ```
 
@@ -77,7 +73,8 @@ anim_save("prop_deathsbycommondiseases.gif", prop_deathsbycommondiseases)
 
 # https://wonder.cdc.gov/controller/datarequest/D77;jsessionid=3F8131C534663BDD3F79E66994FCF12E
 
-death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv")
+death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv", 
+                                    col_types = "lcdccddddddddic")
 
 us_state <- map_data("state") %>%
   rename(state_full = region)
@@ -200,8 +197,6 @@ theme_classic() +
        subtitle = "Between the Years of 2000 and 2014") +
   geom_point() +
   transition_reveal(Year)
-
-anim_save("plot_mavsus_death.gif", plot_mavsus_death)
 
 ```
 

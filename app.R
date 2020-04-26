@@ -18,7 +18,8 @@ library(broom)
 
 # https://wonder.cdc.gov/controller/datarequest/D77;jsessionid=3F8131C534663BDD3F79E66994FCF12E
 
-death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv")
+death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv", 
+                                    col_types = "lcdccddddd")
 
 us_state <- map_data("state") %>%
   rename(state_full = region)
@@ -37,13 +38,13 @@ treatment_locations <- read_csv("Drug Treatment Centers.csv") %>%
 
 # state populations
 
-state_pop <- read_csv("State Population Estimate.csv") %>%
+state_pop <- read_csv("State Population Estimate.csv", col_types = "dccdcdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd") %>%
   rename(state_full = NAME) %>%
   mutate(state_full = tolower(state_full))
 
 # https://simplemaps.com/data/us-cities
 
-longlatinfo <- read_csv("uscitieslonglat.csv") %>%
+longlatinfo <- read_csv("uscitieslonglat.csv", col_types = "ccccdcccddddcllcdcd") %>%
   rename(City = city) %>%
   rename(State = state_id)
 
@@ -65,14 +66,14 @@ treatment_locations_map_mas <- treatment_locations %>%
   filter(State == "MA") %>%
   drop_na()
 
-counties <- read_csv("zip_codes_states.csv") %>%
+counties <- read_csv("zip_codes_states.csv", col_types = "dddccc") %>%
   filter(state == "MA") %>%
   rename(County = county) %>%
   rename(Municipality = city)
 
 madeathbycounty <- read_csv("MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv")
 
-countypop <- read_csv("countypop.csv") %>%
+countypop <- read_csv("countypop.csv", col_types = "cdcdddc") %>%
   mutate(Pop = Pop/100000) %>%
   rename(subregion = CTYNAME) %>%
   mutate(subregion = tolower(subregion)) %>%
@@ -104,7 +105,7 @@ us_county <- map_data("county") %>%
 
 # https://www.indexmundi.com/facts/united-states/quick-facts/massachusetts/percent-of-people-of-all-ages-in-poverty#table
 
-povertybycounty <- read_csv("PovertyByCounty.csv") %>%
+povertybycounty <- read_csv("PovertyByCounty.csv", col_types = "cd") %>%
   rename(subregion = County) %>%
   mutate(subregion = tolower(subregion))
 
