@@ -19,7 +19,7 @@ library(broom)
 # https://wonder.cdc.gov/controller/datarequest/D77;jsessionid=3F8131C534663BDD3F79E66994FCF12E
 
 death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv", 
-                                    col_types = "lcdccddddd")
+                                    col_types = "lcdccddddc")
 
 us_state <- map_data("state") %>%
   rename(state_full = region)
