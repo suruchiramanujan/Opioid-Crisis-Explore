@@ -71,7 +71,8 @@ counties <- read_csv("zip_codes_states.csv", col_types = "dddccc") %>%
   rename(County = county) %>%
   rename(Municipality = city)
 
-madeathbycounty <- read_csv("MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv")
+madeathbycounty <- read_csv("MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv", 
+                            col_types = "cdcdddc")
 
 countypop <- read_csv("countypop.csv", col_types = "cdcdddc") %>%
   mutate(Pop = Pop/100000) %>%

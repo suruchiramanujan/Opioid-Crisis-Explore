@@ -101,18 +101,18 @@ ggplot(data = death_by_year_and_state,
 ```{r, message=FALSE}
 #drug treatment centers
 
-treatment_locations <- read_csv("Drug Treatment Centers.csv") %>%
+treatment_locations <- read_csv("Drug Treatment Centers.csv", col_types = "ccccccccc") %>%
   select(`Program Name`, Street, City, State, Zipcode)
 
 # state populations
 
-state_pop <- read_csv("State Population Estimate.csv") %>%
+state_pop <- read_csv("State Population Estimate.csv", col_types = "dccdcdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd") %>%
   rename(state_full = NAME) %>%
   mutate(state_full = tolower(state_full))
 
 # https://simplemaps.com/data/us-cities
 
-longlatinfo <- read_csv("uscitieslonglat.csv") %>%
+longlatinfo <- read_csv("uscitieslonglat.csv", col_types = "ccccdcccddddcllcdcd") %>%
   rename(City = city) %>%
   rename(State = state_id)
 
@@ -165,16 +165,21 @@ ggplot(data = treatment_locations_map_per_cap,
 ```{r, message = FALSE}
 #MA specific data
 
-madeathbyagegender <- read_csv("MAFatalOpioidOverdosesByAgeAndGender.csv")
+madeathbyagegender <- read_csv("MAFatalOpioidOverdosesByAgeAndGender.csv",
+                               col_types = "ccddd")
 
-macountyheroin <- read_csv("MAHeroinAsPrimarySubstanceOfUse.csv")
+macountyheroin <- read_csv("MAHeroinAsPrimarySubstanceOfUse.csv",
+                           col_types = "ccccc")
 
-madeathbyrace <- read_csv("MAOpioidDeathsByRaceAndEthnicity.csv")
+madeathbyrace <- read_csv("MAOpioidDeathsByRaceAndEthnicity.csv",
+                          col_types = "dcdd")
 
-matypeofsubstance <- read_csv("MAPrimarySubstanceofUseWhenEnteringTreatmentbyTown.csv")
+matypeofsubstance <- read_csv("MAPrimarySubstanceofUseWhenEnteringTreatmentbyTown.csv",
+                              col_types = "cccccccccccc")
 
 toxdeath <- read_csv("MAProportionDecedentsWithRxHistorybyToxicologyScreen.csv",
-         skip = 1)
+         skip = 1,
+         col_types = "cdccccccdc")
 
 ```
 
@@ -201,14 +206,17 @@ theme_classic() +
 ```
 
 ```{r}
-counties <- read_csv("zip_codes_states.csv") %>%
+counties <- read_csv("zip_codes_states.csv",
+                     col_types = "dddccc") %>%
   filter(state == "MA") %>%
   rename(County = county) %>%
   rename(Municipality = city)
 
-madeathbycounty <- read_csv("MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv")
+madeathbycounty <- read_csv("MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv",
+                            col_types = "cdcdddc")
 
-countypop <- read_csv("countypop.csv") %>%
+countypop <- read_csv("countypop.csv",
+                      col_types = "cd") %>%
   mutate(Pop = Pop/100000) %>%
   rename(subregion = CTYNAME) %>%
   mutate(subregion = tolower(subregion)) %>%
@@ -241,7 +249,8 @@ us_county <- map_data("county") %>%
 
 # https://www.indexmundi.com/facts/united-states/quick-facts/massachusetts/percent-of-people-of-all-ages-in-poverty#table
 
-povertybycounty <- read_csv("PovertyByCounty.csv") %>%
+povertybycounty <- read_csv("PovertyByCounty.csv",
+                            col_types = "cd") %>%
   rename(subregion = County) %>%
   mutate(subregion = tolower(subregion))
 
