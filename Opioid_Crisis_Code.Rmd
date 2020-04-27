@@ -1,7 +1,7 @@
 ---
-title: "ms_5"
+title: "opioid_crisis_code"
 author: "Suruchi Ramanujan"
-date: "3/20/2020"
+date: "4/27/2020"
 output: html_document
 ---
 
@@ -19,23 +19,34 @@ library(gganimate)
 library(broom)
 ```
 
-```{r}
+```{r commondiseases, echo = FALSE}
 
-# total deaths per year in u.s. by cancer, drug overdose, cvd
+# total deaths per year in u.s. by cancer, drug overdose, cvd compared to 1999
 
-deathsbycommondiseases <- read_csv("deathsbycommondiseases.csv", col_types = "ldddddd") %>%
-  select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, `Deaths by CVD`) %>%
-  mutate(`Proportion of 1999 Deaths by Cancer` = `Deaths by Cancer`/549829) %>%
-  mutate(`Proportion of 1999 Deaths by Drugs` = `Deaths by Drug Overdose`/19122) %>%
-  mutate(`Proportion of 1999 Deaths by CVD` = `Deaths by CVD`/949900)
+deathsbycommondiseases <- read_csv("deathsbycommondiseases.csv", 
+                          col_types = "ldddddd") %>%
+  select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, 
+         `Deaths by CVD`) %>%
+  mutate(`Proportion of 1999 Deaths by Cancer` = 
+           `Deaths by Cancer`/549829) %>%
+  mutate(`Proportion of 1999 Deaths by Drugs` = 
+           `Deaths by Drug Overdose`/19122) %>%
+  mutate(`Proportion of 1999 Deaths by CVD` = 
+           `Deaths by CVD`/949900)
+
+# this is to look at the total levels of deaths based on disease; pivotted
+# longer for ggplot
 
 totaldeathsbycommondiseases <- deathsbycommondiseases %>%
-  select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, `Deaths by CVD`) %>%
+  select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, 
+         `Deaths by CVD`) %>%
   pivot_longer(.,
              cols = starts_with("Deaths by"),
              names_prefix = "Deaths by",
              values_to = "Deaths") %>%
   rename(`Cause of Death` = name)
+
+# just the info needed to map compared to 1999 proportions
 
 propdeathsbycommondiseases <- deathsbycommondiseases %>%
   select(Year, `Proportion of 1999 Deaths by Cancer`, 
@@ -48,8 +59,13 @@ propdeathsbycommondiseases <- deathsbycommondiseases %>%
   rename(`Cause of Death` = name)
 ```
 
-```{r}
-plot_deathsbycommondiseases <- ggplot(totaldeathsbycommondiseases, aes(x = Year, y = Deaths, color = `Cause of Death`)) +
+```{r ggplot commondiseases, echo = FALSE}
+
+# plot year vs deaths for different diseases. transitions no longer work w
+# plotly
+
+plot_deathsbycommondiseases <- ggplot(totaldeathsbycommondiseases, aes(x = Year, 
+                                        y = Deaths, color = `Cause of Death`)) +
   geom_line() +
   scale_color_viridis_d() +
   theme_classic() +
@@ -58,7 +74,11 @@ plot_deathsbycommondiseases <- ggplot(totaldeathsbycommondiseases, aes(x = Year,
   geom_point() +
   transition_reveal(Year)
 
-prop_deathsbycommondiseases <- ggplot(propdeathsbycommondiseases, aes(x = Year, y = Prop.Deaths, color = `Cause of Death`)) +
+# plot year vs proportion of 1999 deaths for different diseases. transitions no
+# longer work w plotly
+
+prop_deathsbycommondiseases <- ggplot(propdeathsbycommondiseases, 
+                    aes(x = Year, y = Prop.Deaths, color = `Cause of Death`)) +
   geom_line() +
   scale_color_viridis_d() +
   theme_classic() +
@@ -69,16 +89,20 @@ prop_deathsbycommondiseases <- ggplot(propdeathsbycommondiseases, aes(x = Year, 
   
 ```
 
-```{r}
+```{r overdose_counts, echo = FALSE}
 
-# https://wonder.cdc.gov/controller/datarequest/D77;jsessionid=3F8131C534663BDD3F79E66994FCF12E
+# data from wonder from cdc..got rid of unreliable data
 
-death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv", 
-                                    col_types = "lcdccddddc") %>%
+death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv"
+, col_types = "lcdccddddc") %>%
   filter(`Crude Rate` != "Unreliable")
+
+# state info for map
 
 us_state <- map_data("state") %>%
   rename(state_full = region)
+
+# only want death by drugs not alcohol or unknown. join w state info
 
 death_by_year_and_state <- death_by_year_and_state %>%
   filter(`UCD - Drug/Alcohol Induced Code` == "D") %>%
@@ -86,7 +110,12 @@ death_by_year_and_state <- death_by_year_and_state %>%
   mutate(state_full = tolower(state_full)) %>%
   left_join(us_state, by = "state_full" ) 
 
-death_by_year_and_state$`Crude Rate` <-as.numeric(death_by_year_and_state$`Crude Rate`)
+# change cruderate for plot
+
+death_by_year_and_state$`Crude Rate` <-
+  as.numeric(death_by_year_and_state$`Crude Rate`)
+
+# make a map of opioid death rates by state
 
 ggplot(data = death_by_year_and_state,
             mapping = aes(x = long, y = lat,
@@ -99,10 +128,12 @@ ggplot(data = death_by_year_and_state,
 
 ```
 
-```{r, message=FALSE}
+```{r notinuse, echo = FALSE}
+
 #drug treatment centers
 
-treatment_locations <- read_csv("Drug Treatment Centers.csv", col_types = "ccccccccc") %>%
+treatment_locations <- read_csv("Drug Treatment Centers.csv", 
+                                col_types = "ccccccccc") %>%
   select(`Program Name`, Street, City, State, Zipcode)
 
 # state populations
@@ -111,11 +142,14 @@ state_pop <- read_csv("State Population Estimate.csv", col_types = "dccdcddddddd
   rename(state_full = NAME) %>%
   mutate(state_full = tolower(state_full))
 
-# https://simplemaps.com/data/us-cities
+# https://simplemaps.com/data/us-cities longlatinfo
 
-longlatinfo <- read_csv("uscitieslonglat.csv", col_types = "ccccdcccddddcllcdcd") %>%
+longlatinfo <- read_csv("uscitieslonglat.csv", 
+                        col_types = "ccccdcccddddcllcdcd") %>%
   rename(City = city) %>%
   rename(State = state_id)
+
+# treatment location info
 
 treatment_locations_map <- treatment_locations %>%
   left_join(longlatinfo, by = c("City", "State")) %>%
@@ -125,19 +159,7 @@ treatment_locations_map <- treatment_locations %>%
   rename(state_full = state_name) %>%
   left_join(us_state, by = "state_full") 
 
-# not in final 
-
-ggplot(data = treatment_locations_map,
-            mapping = aes(x = long, y = lat.y,
-                          fill = count, group = group)) + 
-  geom_polygon(color = "gray90", size = 0.05) + 
-  theme_map() +
-  scale_fill_gradient(low = "white", high = "#CB454A",
-                      breaks = c(0,20,40,60,80,120)) +
-    guides(fill = guide_legend(nrow = 1)) + 
-    theme(legend.position = "bottom") +
-  labs(title = "Distribution of Opioid Treatment Centers in 2020",
-       color = "Number of Treatment Centers in State")
+# modify data to be per capita
 
 treatment_locations_map_per_cap <- treatment_locations_map %>%
   left_join(state_pop, by = "state_full") %>%
@@ -146,8 +168,9 @@ treatment_locations_map_per_cap <- treatment_locations_map %>%
 
 ```
 
-```{r}
-# in final
+```{r treatmentcenters, echo = FALSE}
+
+# not in final but map of distribution of treatment centers per capita
 
 ggplot(data = treatment_locations_map_per_cap,
             mapping = aes(x = long, y = lat.y,
@@ -163,37 +186,26 @@ ggplot(data = treatment_locations_map_per_cap,
 
 ```
 
-```{r, message = FALSE}
-#MA specific data
+```{r madeathrates, echo = FALSE}
 
-madeathbyagegender <- read_csv("MAFatalOpioidOverdosesByAgeAndGender.csv",
-                               col_types = "ccddd")
+# read in opioid related death rate per year of ma vs that of us
 
-macountyheroin <- read_csv("MAHeroinAsPrimarySubstanceOfUse.csv",
-                           col_types = "ccccc")
+mavsus_death <- read_csv("MAAgeAdjustedOpioidRelatedDeathRateByYear.csv", 
+                         col_types = "cdc")
 
-madeathbyrace <- read_csv("MAOpioidDeathsByRaceAndEthnicity.csv",
-                          col_types = "dcdd")
-
-matypeofsubstance <- read_csv("MAPrimarySubstanceofUseWhenEnteringTreatmentbyTown.csv",
-                              col_types = "cccccccccccc")
-
-toxdeath <- read_csv("MAProportionDecedentsWithRxHistorybyToxicologyScreen.csv",
-         skip = 1,
-         col_types = "cdccccccdc")
-
-```
-
-```{r}
-mavsus_death <- read_csv("MAAgeAdjustedOpioidRelatedDeathRateByYear.csv", col_types = "cdc")
+# only looking at data for which there is complete info
 
 mavsus_death <- mavsus_death %>%
   group_by(Geography) %>%
   filter (Year != "2015") %>%
   filter (Year != "1999") %>%
-  rename(deathperhundredthousand =`Age-Adjusted Opioid-Related Death Rate per 100,000 People`)
+  rename(deathperhundredthousand =
+           `Age-Adjusted Opioid-Related Death Rate per 100,000 People`)
 
-plot_mavsus_death <- ggplot(mavsus_death, aes(x = Year, y = as.numeric(deathperhundredthousand), color = Geography)) +
+# ggplot grouped by geography
+
+plot_mavsus_death <- ggplot(mavsus_death, 
+      aes(x = Year, y = as.numeric(deathperhundredthousand), color = Geography)) +
   geom_line() +
   scale_color_viridis_d() +
 theme_classic() +
@@ -205,15 +217,23 @@ theme_classic() +
 
 ```
 
-```{r}
+```{r plot_1_ma, echo = FALSE}
+
+# county data
+
 counties <- read_csv("zip_codes_states.csv",
                      col_types = "dddccc") %>%
   filter(state == "MA") %>%
   rename(County = county) %>%
   rename(Municipality = city)
 
-madeathbycounty <- read_csv("MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv",
+# opioid related deaths by county
+
+madeathbycounty <- read_csv(
+  "MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv",
                             col_types = "cdcdddc")
+
+# county population for per capita info
 
 countypop <- read_csv("countypop.csv",
                       col_types = "cdd") %>%
@@ -222,8 +242,12 @@ countypop <- read_csv("countypop.csv",
   mutate(subregion = tolower(subregion)) %>%
   select(subregion, Pop)
 
+# counties + longitude/latitude
+
 madeathbycountywlonglat <- madeathbycounty %>%
   left_join(counties, by = "Municipality")
+
+# modifying and dividing by time and county/subregion
 
 madeathbycountywlonglat <- madeathbycountywlonglat %>%
   select(County,
@@ -238,21 +262,27 @@ madeathbycountywlonglat <- madeathbycountywlonglat %>%
   rename(subregion = County) %>%
   mutate(subregion = tolower(subregion)) %>%
   group_by(subregion) %>%
-  mutate(total_deaths_2001.5 = sum(`Confirmed Opioid Related Death Count 2001-2005`)) %>%
-  mutate(total_deaths_2006.10 = sum(`Confirmed Opioid Related Death Count 2006-2010`)) %>%
-  mutate(total_deaths_2011.15 = sum(`Confirmed Opioid Related Death Count 2011-2015`)) %>%
+  mutate(total_deaths_2001.5 = 
+          sum(`Confirmed Opioid Related Death Count 2001-2005`)) %>%
+  mutate(total_deaths_2006.10 = 
+          sum(`Confirmed Opioid Related Death Count 2006-2010`)) %>%
+  mutate(total_deaths_2011.15 = 
+           sum(`Confirmed Opioid Related Death Count 2011-2015`)) %>%
   distinct(subregion, .keep_all= TRUE)
   
+# county map info
 
 us_county <- map_data("county") %>%
   filter(region == "massachusetts")
 
-# https://www.indexmundi.com/facts/united-states/quick-facts/massachusetts/percent-of-people-of-all-ages-in-poverty#table
+# poverty by county (not in use as of now)
 
 povertybycounty <- read_csv("PovertyByCounty.csv",
                             col_types = "cd") %>%
   rename(subregion = County) %>%
   mutate(subregion = tolower(subregion))
+
+# combining all mass data together
 
 full_data <- us_county %>%
   left_join(madeathbycountywlonglat, by = "subregion") %>%
@@ -262,26 +292,40 @@ full_data <- us_county %>%
   mutate(percap_2006.10 = total_deaths_2006.10/Pop) %>%
   mutate(percap_2011.15 = total_deaths_2011.15/Pop) 
 
+# 2001-2005 poverty percent vs opioid death rate per capita by county
+
 ggplot(full_data, aes(x = `Poverty Percent`, y = percap_2001.5)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE)
 
+# not in use but correlation between poverty rate and opioid death per capita
+
 full_data %>%
   summarize(correlation = cor(percap_2001.5,`Poverty Percent`))
+
+# 2006-2010 poverty percent vs opioid death rate per capita by county
 
 ggplot(full_data, aes(x = `Poverty Percent`, y = percap_2006.10)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE)
 
+# not in use but correlation between poverty rate and opioid death per capita
+
 full_data %>%
   summarize(correlation = cor(percap_2006.10,`Poverty Percent`))
+
+# 2011-2015 poverty percent vs opioid death rate per capita by county
 
 ggplot(full_data, aes(x = `Poverty Percent`, y = percap_2011.15)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE)
 
+# not in use but correlation between poverty rate and opioid death per capita
+
 full_data %>%
   summarize(correlation = cor(percap_2011.15,`Poverty Percent`))
+
+# poverty percent by county (not in use)
 
 ggplot(data = full_data,
             mapping = aes(x = long, y = lat,
@@ -294,6 +338,8 @@ ggplot(data = full_data,
     guides(fill = guide_legend(nrow = 1)) + 
     theme(legend.position = "bottom")
 
+# ggplot of opioid death rate per capita by county between 01 and 05
+
 ggplot(data = full_data,
             mapping = aes(x = long, y = lat,
                           fill = percap_2001.5,
@@ -304,6 +350,8 @@ ggplot(data = full_data,
                       breaks = c(0,20,40,60,80,100)) +
     guides(fill = guide_legend(nrow = 1)) + 
     theme(legend.position = "bottom")
+
+# ggplot of opioid death rate per capita by county between 06 and 10
 
 ggplot(data = full_data,
             mapping = aes(x = long, y = lat,
@@ -316,6 +364,8 @@ ggplot(data = full_data,
     guides(fill = guide_legend(nrow = 1)) + 
     theme(legend.position = "bottom")
 
+# ggplot of opioid death rate per capita by county between 11 and 15
+
 ggplot(data = full_data,
             mapping = aes(x = long, y = lat,
                           fill = percap_2011.15,
@@ -327,7 +377,8 @@ ggplot(data = full_data,
     guides(fill = guide_legend(nrow = 1)) + 
     theme(legend.position = "bottom")
 
-# don't put these in final app
+# don't put these in final app bc they are the same graphs as above except w
+# total death info rather than per capita- will prob confuse reader
 
 ggplot(data = full_data,
             mapping = aes(x = long, y = lat,
@@ -364,15 +415,16 @@ ggplot(data = full_data,
 
 ```
 
-```{r}
+```{r leaflet, echo = FALSE}
 
-#treatment centers in MA
+# just looking at treatment centers in MA
 
 treatment_locations_map_mas <- treatment_locations %>%
   left_join(longlatinfo, by = c("City", "State")) %>%
   filter(State == "MA") %>%
   drop_na()
 
+#treatment centers in MA distribution using leaflet
 
 leaflet(options = leafletOptions(dragging = TRUE,
                                  minZoom = 8, 
@@ -381,30 +433,33 @@ leaflet(options = leafletOptions(dragging = TRUE,
   addCircleMarkers(data = treatment_locations_map_mas,
                    radius = 3,
                    label = ~`Program Name`) 
-
-# need to figure this out bc color isnt working
- # addLegend(position = "bottomright", colors = "#0000FF", title = "Opioid Treatment Sites")
   
 ```
 
-```{r}
+```{r ageandrace, echo = FALSE}
 
-# models generated from data from kff.org
+# models generated from data from kff.org which took data from cdc
 
-# ageopioid
+# age vs opioid deaths over time
 
-ageopioidmodel <- read_csv("U.S. age vs. opioid deaths.csv", col_types = "dcc") %>%
+ageopioidmodel <- read_csv("U.S. age vs. opioid deaths.csv", 
+                           col_types = "dcc") %>%
   clean_names() %>%
   filter(number_of_deaths != "N/A") %>%
   filter(age_range != "Total") %>%
   mutate(age_range = as.factor(age_range)) %>%
     mutate(number_of_deaths = as.numeric(number_of_deaths))
 
-raceopioidmodel <- read_csv("U.S. race vs. opioid deaths.csv", col_types = "dcc") %>%
+# race vs opioid deaths over time
+
+raceopioidmodel <- read_csv("U.S. race vs. opioid deaths.csv", 
+                            col_types = "dcc") %>%
   clean_names() %>%
   na.omit() %>%
   mutate(race = as.factor(race)) %>%
   mutate(opioid_deaths = as.numeric(opioid_deaths))
+
+# combine the two for ggplot later
 
 ageandracemodel <- ageopioidmodel %>%
   na.omit() %>%
@@ -412,12 +467,17 @@ ageandracemodel <- ageopioidmodel %>%
   rename(deathsbyage = number_of_deaths) %>%
   rename(deathsbyrace = opioid_deaths)
 
+# ggplot for age over time vs opioid deaths
+
 ggplot(ageandracemodel, aes(year, deathsbyage, color = age_range)) +
   geom_point() +
   scale_color_viridis_d() +
   theme_classic() +
   geom_smooth(method = "lm", se = FALSE) +
-  labs(x = "Year", y = "Number of Opioid Deaths in America", color = "Age Range")
+  labs(x = "Year", y = "Number of Opioid Deaths in America", 
+       color = "Age Range")
+
+# ggplot for race over time vs opioid deaths
 
 ggplot(ageandracemodel, aes(year, deathsbyrace, color = race)) +
   geom_point() +
@@ -427,11 +487,14 @@ ggplot(ageandracemodel, aes(year, deathsbyrace, color = race)) +
   labs(x = "Year", y = "Number of Opioid Deaths in America", color = "Race")
 ```
 
-```{r}
+```{r race_lm, echo = FALSE}
+
 # filtering data by race to show effects of time on deaths in each race group
 
 death_vs_white <- raceopioidmodel %>%
   filter(race == "White, Non-Hispanic")
+
+# all simple linear regression model
 
 death_vs_white %>%
     lm(opioid_deaths ~ year, data = .) %>% 
@@ -439,8 +502,7 @@ death_vs_white %>%
     select(term, estimate, conf.low, conf.high) %>%
     rename(Coefficient = estimate) %>%
     rename(`Lower End` = conf.low) %>%
-    rename(`Upper End` = conf.high) %>%
-    gt()
+    rename(`Upper End` = conf.high)
 
 death_vs_black <- raceopioidmodel %>%
   filter(race == "Black, Non-Hispanic")
@@ -459,7 +521,7 @@ death_vs_hispanic %>%
     select(term, estimate, conf.low, conf.high)
 ```
 
-```{r}
+```{r age_lm, echo = FALSE}
 
 # filtering data by age to show effects of time on deaths in each age group
 
@@ -510,9 +572,11 @@ averageageopioidbyage <- ageopioidmodel %>%
   group_by(age_range) %>%
   summarize(mean_deaths = mean(number_of_deaths))
 
-# showing effects of being in each age group on number of deaths idt this makes sense
+# showing effects of being in each age group on number of deaths idt this makes
+# sense so not including it yet
 
-averageageopioid_model <- lm(number_of_deaths ~ age_range, data = ageopioidmodel)
+averageageopioid_model <- lm(number_of_deaths ~ age_range, 
+                             data = ageopioidmodel)
 averageageopioid_model %>%
   tidy(conf.int = TRUE) %>%
   select(term, estimate, conf.low, conf.high)
