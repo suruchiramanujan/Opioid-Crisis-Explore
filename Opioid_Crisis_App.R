@@ -265,7 +265,7 @@ tabPanel("Model",
                                    chapter55.digital.mass.gov."),
                          p("My project code can be found on my",
                            a("GitHub",
-                             href = "https://github.com/suruchiramanujan/final-project.git",)),
+                             href = "https://github.com/suruchiramanujan/Opioid-Crisis-Explore",)),
                          h1("About Me"),
                          p("My name is Suruchi Ramanujan and I am a 
                                    senior in Quincy House studying 
