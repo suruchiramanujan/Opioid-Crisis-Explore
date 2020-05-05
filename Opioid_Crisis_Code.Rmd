@@ -181,9 +181,9 @@ ggplot(data = treatment_locations_map_per_cap,
                       breaks = c(0,20,40,60,80,120)) +
     guides(fill = guide_legend(nrow = 1)) + 
     theme(legend.position = "bottom") +
-  labs(title = "Distribution of Opioid Treatment Centers in 2020 (Per Capita)",
-       color = "Number of Treatment Centers in State Per Capita")
+  labs(color = "Number of Treatment Centers in State Per Capita")
 
+ggsave("treatment_centers_per_capita.png")
 ```
 
 ```{r madeathrates, echo = FALSE}

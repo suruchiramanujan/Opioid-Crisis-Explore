@@ -218,7 +218,8 @@ ui <- navbarPage(theme = shinytheme("flatly"),
                             from_max =2018,
                             choices = levels(
                               as.factor(death_by_year_and_state$Year))),
-                  fixedRow(column(7, plotOutput("overdose_counts")),
+                  fixedRow(column(7, plotOutput("overdose_counts"),
+                                  inline = TRUE),
                 column(3, offset = 1,
                 p("We cannot assume that the distribution of opioid overdose 
                 deaths per capita differs is uniform. There is certainly 
@@ -228,11 +229,10 @@ ui <- navbarPage(theme = shinytheme("flatly"),
                 deaths per capita over the past 20 years, beginning with some of 
                 the lowest death rates in 1998 and rising to have the highest 
                 state death rate per capita in 2018.")))),
-                br(),
-                
                 h3("Distribution of Opioid Treatment Centers in 2020 
                    (Per Capita)"),
-                fixedRow(column(7,plotlyOutput("treatment_centers_per_capita")),
+                fixedRow(column(7,imageOutput("treatment_centers_per_capita"),
+                                inline = TRUE),
                 column(3, offset = 1,
                 p("Unfortunately, the distribution of treatment centers per 
                 capita does not match up with the number of opioid deaths per 
@@ -324,8 +324,15 @@ tabPanel("Model",
          mainPanel(
            DTOutput("coefrace"))),
          tabPanel("About",
+                  imageOutput("pills"),
+                  br(),
+                  br(),
+                  h2("Visualizing the Effects of Opioids Across the United States", align = "center"),
+                  h4(em("An Analysis of Opioid Death Distribution"), align = "center"),
+                  br(),
+                  div(),
                   column(9,
-                         h1("Background"),
+                         h3("Background"),
                          p("Opioids have been prescribed for pain management for 
                          many decades, although they are effective at treating 
                          acute, not chronic pain. In treating chronic pain, 
@@ -357,7 +364,7 @@ tabPanel("Model",
                          p("Finally, I sought to create a model between factors 
                          of interest such as age and ethnicity and increases in 
                            opioid deaths over the past twenty years."),
-                         h1("The Data"),
+                         h3("The Data"),
                          p("Data concerning the entire United States came from 
                          the CDC's Wonder Archive. Massachusetts-specific data 
                          came from chapter55.digital.mass.gov."),
@@ -365,7 +372,7 @@ tabPanel("Model",
                            a("GitHub",
                              href = 
                 "https://github.com/suruchiramanujan/Opioid-Crisis-Explore",)),
-                         h1("About Me"),
+                         h3("About Me"),
                          p("My name is Suruchi Ramanujan and I am a senior in 
                          Quincy House studying Molecular and Cellular Biology.
                          In the future, I would like to optimize data usage in 
@@ -395,7 +402,8 @@ server <- function(input, output, session) {
                             breaks = c(0,5,10,15,20,25,30,35,40,45,50)) +
         guides(fill = guide_legend(nrow = 1)) + 
         theme(legend.position = "bottom")
-      })
+      }, width = 750,
+      height = 562.5)
     
     output$plot_1 <- renderPlot({
       
@@ -476,9 +484,33 @@ server <- function(input, output, session) {
     
       })
     
+    output$pills <- renderImage({
+      
+      # Return a list containing the filename. This specifies size and alt text as
+      # well.
+      
+      list(src = "pills.jpg",
+           contentType = 'image/jpg',
+           width = 600,
+           height = 450,
+           style = "display: block; margin-left: auto; margin-right: auto;")
+    }, deleteFile = FALSE)
+    
     # not included bc too big but kept just in case I find a way to manip later
     
-    output$treatment_centers_per_capita <- renderPlotly({
+    output$treatment_centers_per_capita <- renderImage({
+        
+# Return a list containing the filename. This specifies size and alt text as
+# well.
+      
+        list(src = "treatment_centers_per_capita.png",
+             contentType = 'image/png',
+            width = 750,
+            height = 562.5,
+             alt = "This is alternate text")
+      }, deleteFile = FALSE)
+      
+      # renderPlotly({
     # map_3 <- ggplot(data = treatment_locations_map_per_cap,
     #          mapping = aes(x = long, y = lat.y,
     #                        fill = count_per_pop, group = group)) + 
@@ -493,7 +525,6 @@ server <- function(input, output, session) {
     #          color = "Number of Treatment Centers in State Per Capita")
     #  map_3 <- ggplotly(map_3) %>%
     #    layout(showlegend=T)
-     })
     
     # Distribution of treatment centers in Massachusetts
     
