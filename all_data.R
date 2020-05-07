@@ -18,7 +18,7 @@ library(broom)
 
 # https://wonder.cdc.gov/controller/datarequest/D77;jsessionid=3F8131C534663BDD3F79E66994FCF12E
 
-death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv", 
+death_by_year_and_state <- read_csv("raw-data/Drug Overdose Deaths by Year and State.csv", 
                                     col_types = "lcdccddddc") %>%
   filter(`Crude Rate` != "Unreliable")
 
@@ -36,14 +36,14 @@ death_by_year_and_state$`Crude Rate` <-as.numeric(death_by_year_and_state$`Crude
 
 write_rds(death_by_year_and_state, "death_by_year_and_state.rds")
 
-treatment_locations <- read_csv("Drug Treatment Centers.csv", col_types = "ccccccccc") %>%
+treatment_locations <- read_csv("raw-data/Drug Treatment Centers.csv", col_types = "ccccccccc") %>%
   select(`Program Name`, Street, City, State, Zipcode)
 
 write_rds(treatment_locations, "treatment_locations.rds")
 
 # state populations
 
-state_pop <- read_csv("State Population Estimate.csv", col_types = "dccdcdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd") %>%
+state_pop <- read_csv("raw-data/State Population Estimate.csv", col_types = "dccdcdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd") %>%
   rename(state_full = NAME) %>%
   mutate(state_full = tolower(state_full))
 
@@ -51,7 +51,7 @@ write_rds(state_pop, "state_pop.rds")
 
 # https://simplemaps.com/data/us-cities
 
-longlatinfo <- read_csv("uscitieslonglat.csv", col_types = "ccccdcccddddcllcdcd") %>%
+longlatinfo <- read_csv("raw-data/uscitieslonglat.csv", col_types = "ccccdcccddddcllcdcd") %>%
   rename(City = city) %>%
   rename(State = state_id)
 
@@ -77,7 +77,7 @@ treatment_locations_map_mas <- treatment_locations %>%
 
 write_rds(treatment_locations_map_mas, "treatment_locations_map_mas.rds")
 
-counties <- read_csv("zip_codes_states.csv", col_types = "dddccc") %>%
+counties <- read_csv("raw-data/zip_codes_states.csv", col_types = "dddccc") %>%
   na.omit() %>%
   filter(state == "MA") %>%
   rename(County = county) %>%
@@ -85,13 +85,13 @@ counties <- read_csv("zip_codes_states.csv", col_types = "dddccc") %>%
 
 write_rds(counties, "counties.rds")
 
-madeathbycounty <- read_csv("MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv", 
+madeathbycounty <- read_csv("raw-data/MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv", 
                             col_types = "cdcdddc") %>%
   na.omit()
 
 write_rds(madeathbycounty, "madeathbycounty.rds")
 
-countypop <- read_csv("countypop.csv", col_types = "cdd") %>%
+countypop <- read_csv("raw-data/countypop.csv", col_types = "cdd") %>%
   na.omit() %>%
   mutate(Pop = Pop/100000) %>%
   rename(subregion = CTYNAME) %>%
@@ -128,7 +128,7 @@ us_county <- map_data("county") %>%
 
 # https://www.indexmundi.com/facts/united-states/quick-facts/massachusetts/percent-of-people-of-all-ages-in-poverty#table
 
-povertybycounty <- read_csv("PovertyByCounty.csv", col_types = "cd") %>%
+povertybycounty <- read_csv("raw-data/PovertyByCounty.csv", col_types = "cd") %>%
   na.omit() %>%
   rename(subregion = County) %>%
   mutate(subregion = tolower(subregion))
@@ -144,7 +144,7 @@ full_data <- us_county %>%
   mutate(percap_2006.10 = total_deaths_2006.10/Pop) %>%
   mutate(percap_2011.15 = total_deaths_2011.15/Pop) 
 
-ageopioidmodel <- read_csv("U.S. age vs. opioid deaths.csv", col_types = "dcc") %>%
+ageopioidmodel <- read_csv("raw-data/U.S. age vs. opioid deaths.csv", col_types = "dcc") %>%
   clean_names() %>%
   filter(number_of_deaths != "N/A") %>%
   filter(age_range != "Total") %>%
@@ -153,7 +153,7 @@ ageopioidmodel <- read_csv("U.S. age vs. opioid deaths.csv", col_types = "dcc") 
 
 write_rds(ageopioidmodel, "ageopioidmodel.rds")
 
-raceopioidmodel <- read_csv("U.S. race vs. opioid deaths.csv", col_types = "dcc") %>%
+raceopioidmodel <- read_csv("raw-data/U.S. race vs. opioid deaths.csv", col_types = "dcc") %>%
   clean_names() %>%
   na.omit() %>%
   mutate(race = as.factor(race)) %>%
@@ -167,7 +167,7 @@ ageandracemodel <- ageopioidmodel %>%
   rename(deathsbyage = number_of_deaths) %>%
   rename(deathsbyrace = opioid_deaths)
 
-deathsbycommondiseases <- read_csv("deathsbycommondiseases.csv", col_types = "ldddddd") %>%
+deathsbycommondiseases <- read_csv("raw-data/deathsbycommondiseases.csv", col_types = "ldddddd") %>%
   select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, `Deaths by CVD`) %>%
   mutate(`Proportion of 1999 Deaths by Cancer` = `Deaths by Cancer`/549829) %>%
   mutate(`Proportion of 1999 Deaths by Drugs` = `Deaths by Drug Overdose`/19122) %>%
@@ -190,7 +190,7 @@ propdeathsbycommondiseases <- deathsbycommondiseases %>%
   pivot_longer(., cols = starts_with("Proportion of"), names_prefix = "Proportion of 1999 Deaths by", values_to = "Prop.Deaths") %>%
   rename(`Cause of Death` = name)
 
-mavsus_death <- read_csv("MAAgeAdjustedOpioidRelatedDeathRateByYear.csv", col_types = "cdc") %>%
+mavsus_death <- read_csv("raw-data/MAAgeAdjustedOpioidRelatedDeathRateByYear.csv", col_types = "cdc") %>%
   na.omit()
 
 write_rds(mavsus_death, "mavsus_death.rds")

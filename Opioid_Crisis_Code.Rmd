@@ -23,7 +23,7 @@ library(broom)
 
 # total deaths per year in u.s. by cancer, drug overdose, cvd compared to 1999
 
-deathsbycommondiseases <- read_csv("deathsbycommondiseases.csv", 
+deathsbycommondiseases <- read_csv("raw-data/deathsbycommondiseases.csv", 
                           col_types = "ldddddd") %>%
   select(Year, `Deaths by Cancer`, `Deaths by Drug Overdose`, 
          `Deaths by CVD`) %>%
@@ -93,7 +93,7 @@ prop_deathsbycommondiseases <- ggplot(propdeathsbycommondiseases,
 
 # data from wonder from cdc..got rid of unreliable data
 
-death_by_year_and_state <- read_csv("Drug Overdose Deaths by Year and State.csv"
+death_by_year_and_state <- read_csv("raw-data/Drug Overdose Deaths by Year and State.csv"
 , col_types = "lcdccddddc") %>%
   filter(`Crude Rate` != "Unreliable")
 
@@ -132,19 +132,19 @@ ggplot(data = death_by_year_and_state,
 
 #drug treatment centers
 
-treatment_locations <- read_csv("Drug Treatment Centers.csv", 
+treatment_locations <- read_csv("raw-data/Drug Treatment Centers.csv", 
                                 col_types = "ccccccccc") %>%
   select(`Program Name`, Street, City, State, Zipcode)
 
 # state populations
 
-state_pop <- read_csv("State Population Estimate.csv", col_types = "dccdcdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd") %>%
+state_pop <- read_csv("raw-data/State Population Estimate.csv", col_types = "dccdcdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd") %>%
   rename(state_full = NAME) %>%
   mutate(state_full = tolower(state_full))
 
 # https://simplemaps.com/data/us-cities longlatinfo
 
-longlatinfo <- read_csv("uscitieslonglat.csv", 
+longlatinfo <- read_csv("raw-data/uscitieslonglat.csv", 
                         col_types = "ccccdcccddddcllcdcd") %>%
   rename(City = city) %>%
   rename(State = state_id)
@@ -170,7 +170,7 @@ treatment_locations_map_per_cap <- treatment_locations_map %>%
 
 ```{r treatmentcenters, echo = FALSE}
 
-# not in final but map of distribution of treatment centers per capita
+# map of distribution of treatment centers per capita
 
 ggplot(data = treatment_locations_map_per_cap,
             mapping = aes(x = long, y = lat.y,
@@ -190,7 +190,7 @@ ggsave("treatment_centers_per_capita.png")
 
 # read in opioid related death rate per year of ma vs that of us
 
-mavsus_death <- read_csv("MAAgeAdjustedOpioidRelatedDeathRateByYear.csv", 
+mavsus_death <- read_csv("raw-data/MAAgeAdjustedOpioidRelatedDeathRateByYear.csv", 
                          col_types = "cdc")
 
 # only looking at data for which there is complete info
@@ -221,7 +221,7 @@ theme_classic() +
 
 # county data
 
-counties <- read_csv("zip_codes_states.csv",
+counties <- read_csv("raw-data/zip_codes_states.csv",
                      col_types = "dddccc") %>%
   filter(state == "MA") %>%
   rename(County = county) %>%
@@ -230,12 +230,12 @@ counties <- read_csv("zip_codes_states.csv",
 # opioid related deaths by county
 
 madeathbycounty <- read_csv(
-  "MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv",
+  "raw-data/MAAverageAnnualOpioidRelatedDeathRateper100,000People.csv",
                             col_types = "cdcdddc")
 
 # county population for per capita info
 
-countypop <- read_csv("countypop.csv",
+countypop <- read_csv("raw-data/countypop.csv",
                       col_types = "cdd") %>%
   mutate(Pop = Pop/100000) %>%
   rename(subregion = CTYNAME) %>%
@@ -277,7 +277,7 @@ us_county <- map_data("county") %>%
 
 # poverty by county (not in use as of now)
 
-povertybycounty <- read_csv("PovertyByCounty.csv",
+povertybycounty <- read_csv("raw-data/PovertyByCounty.csv",
                             col_types = "cd") %>%
   rename(subregion = County) %>%
   mutate(subregion = tolower(subregion))
@@ -442,7 +442,7 @@ leaflet(options = leafletOptions(dragging = TRUE,
 
 # age vs opioid deaths over time
 
-ageopioidmodel <- read_csv("U.S. age vs. opioid deaths.csv", 
+ageopioidmodel <- read_csv("raw-data/U.S. age vs. opioid deaths.csv", 
                            col_types = "dcc") %>%
   clean_names() %>%
   filter(number_of_deaths != "N/A") %>%
@@ -452,7 +452,7 @@ ageopioidmodel <- read_csv("U.S. age vs. opioid deaths.csv",
 
 # race vs opioid deaths over time
 
-raceopioidmodel <- read_csv("U.S. race vs. opioid deaths.csv", 
+raceopioidmodel <- read_csv("raw-data/U.S. race vs. opioid deaths.csv", 
                             col_types = "dcc") %>%
   clean_names() %>%
   na.omit() %>%

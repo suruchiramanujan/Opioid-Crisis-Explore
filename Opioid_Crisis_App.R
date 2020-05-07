@@ -212,7 +212,7 @@ ui <- navbarPage(theme = shinytheme("flatly"),
                                    seeing sharp increases in death by
                                    opioid overdose."))),
                                    fluidPage(
-                  titlePanel("Drug Overdoses Per Capita by State Over Time"),
+                  h3("Drug Overdoses Per Capita by State Over Time"),
                   sliderTextInput("Year", "Year", 
                             from_min = 1998,
                             from_max =2018,
@@ -245,7 +245,8 @@ ui <- navbarPage(theme = shinytheme("flatly"),
                 recent than the most recent opioid death data."))
                )),
 tabPanel("Massachusetts Opioid Data",
-         h1("Comparison of Death Rates between Massachusetts and the 
+         h1("Opioid Deaths in Massachusetts"),
+         h3("Comparison of Death Rates between Massachusetts and the 
             United States Between the Years of 2000 and 2014"),
              fixedRow(column(7,  plotlyOutput("madeathrates", height = "100%")),
                       column(3, offset = 1, p("The graph to the left, created 
@@ -255,7 +256,7 @@ tabPanel("Massachusetts Opioid Data",
                       Despite efforts at expanding healthcare (for example, 
                       through Romneycare), opioid deaths stay consistently 
                       higher than the national average"))),
-                h2("Opioid Deaths in Massachusetts by County over Time"),
+                h3("Opioid Deaths in Massachusetts by County over Time"),
          br(),
                 # create drop down for user selecting time period
                 
@@ -274,7 +275,7 @@ tabPanel("Massachusetts Opioid Data",
                 although this makes sense given the high population of Sussex. 
                 Thus, in order to better demonstrate the distribution of deaths, 
                 I chose to map the total deaths per capita by county."))),
-                h2("Distribution of Opioid Treatment Centers Across 
+                h3("Distribution of Opioid Treatment Centers Across 
                    Massachusetts"),
                 fixedRow(column(7, fluidPage(
                   leafletOutput("masstreat"))),
@@ -367,7 +368,11 @@ tabPanel("Model",
                          h3("The Data"),
                          p("Data concerning the entire United States came from 
                          the CDC's Wonder Archive. Massachusetts-specific data 
-                         came from chapter55.digital.mass.gov."),
+                         came from chapter55.digital.mass.gov. The image above 
+                           came from",
+                           a("here",
+                           href = 
+                           "https://patientengagementhit.com/features/reconciling-the-opioid-crisis-with-delivering-quality-patient-experience",),
                          p("My project code can be found on my",
                            a("GitHub",
                              href = 
@@ -376,16 +381,14 @@ tabPanel("Model",
                          p("My name is Suruchi Ramanujan and I am a senior in 
                          Quincy House studying Molecular and Cellular Biology.
                          In the future, I would like to optimize data usage in 
-                         the health fields. In my free time, I enjoy performing 
-                         Indian Classical dance, running, and grinding through 
-                        my DataCamp exercises."),
+                         the health fields."),
                          p("You can reach me at ",
                            a("suruchi_ramanujan@college.harvard.edu",
                   href = "mailto: suruchi_ramanujan@college.harvard.edu",),
                            "or on ",
                            a("LinkedIn",
           href = "https://www.linkedin.com/in/suruchi-ramanujan-791007115/")))
-))
+)))
 server <- function(input, output, session) {
   
   # plotting year vs opioid death rate per capita across U.S.
@@ -485,9 +488,9 @@ server <- function(input, output, session) {
       })
     
     output$pills <- renderImage({
-      
-      # Return a list containing the filename. This specifies size and alt text as
-      # well.
+
+# Return a list containing the filename. This specifies size and alt text as
+# well.
       
       list(src = "pills.jpg",
            contentType = 'image/jpg',
@@ -496,7 +499,8 @@ server <- function(input, output, session) {
            style = "display: block; margin-left: auto; margin-right: auto;")
     }, deleteFile = FALSE)
     
-    # not included bc too big but kept just in case I find a way to manip later
+    # previously had the code but bc too little instant space, I had to switch
+    # the code out for a png of the treatment center distribution
     
     output$treatment_centers_per_capita <- renderImage({
         
@@ -509,24 +513,6 @@ server <- function(input, output, session) {
             height = 562.5,
              alt = "This is alternate text")
       }, deleteFile = FALSE)
-      
-      # renderPlotly({
-    # map_3 <- ggplot(data = treatment_locations_map_per_cap,
-    #          mapping = aes(x = long, y = lat.y,
-    #                        fill = count_per_pop, group = group)) + 
-    #     geom_polygon(color = "gray90", size = 0.05) + 
-    #     theme_map() +
-    #     scale_fill_gradient(name = "Number of Treatment Centers Per Capita",
-    #                         low = "white", high = "#CB454A",
-    #                         breaks = c(0,20,40,60,80,120)) +
-    #     guides(fill = guide_legend(nrow = 1)) + 
-    #     theme(legend.position = "bottom") +
-    #     labs(
-    #          color = "Number of Treatment Centers in State Per Capita")
-    #  map_3 <- ggplotly(map_3) %>%
-    #    layout(showlegend=T)
-    
-    # Distribution of treatment centers in Massachusetts
     
     output$masstreat <- renderLeaflet ({
       leaflet(options = leafletOptions(dragging = TRUE,
@@ -549,7 +535,10 @@ server <- function(input, output, session) {
       geom_smooth(method = "lm", se = FALSE) +
       labs(title = "Cumulative Number of Opioid Deaths by Age Range",
            x = "Year", y = "Number of Opioid Deaths in America", 
-           color = "Age Range")}
+           color = "Age Range") +
+          theme(plot.title = element_text(size=18),
+                axis.text=element_text(size=14, face = "bold"),
+                axis.title=element_text(size=16,face="bold"))}
       else{
       ggplot(ageandracemodel, aes(year, deathsbyrace, color = race)) +
         geom_point() +
@@ -558,7 +547,10 @@ server <- function(input, output, session) {
         geom_smooth(method = "lm", se = FALSE) +
         labs(title = "Cumulative Number of Opioid Deaths by Race",
              x = "Year", y = "Number of Opioid Deaths in America", 
-             color = "Race")}
+             color = "Race") +
+          theme(plot.title = element_text(size=18),
+                axis.text=element_text(size=14, face = "bold"),
+                axis.title=element_text(size=16, face = "bold"))}
     })
     
     # simple linear regression deaths over time by age
