@@ -122,7 +122,9 @@ ggplot(data = death_by_year_and_state,
                           fill = `Crude Rate`, group = group)) + 
   geom_polygon(color = "gray90", size = 0.05) + 
   theme_map() +
-  scale_fill_gradient(low = "white", high = "#CB454A") +
+  scale_fill_gradient(name = "Overdose Deaths Per Capita/100,000",
+                            low = "white", high = "#CB454A",
+                            breaks = c(0,5,10,15,20,25,30,35,40,45,50)) +
     guides(fill = guide_legend(nrow = 1)) + 
     theme(legend.position = "bottom")
 
@@ -171,17 +173,18 @@ treatment_locations_map_per_cap <- treatment_locations_map %>%
 ```{r treatmentcenters, echo = FALSE}
 
 # map of distribution of treatment centers per capita
+treatment_locations_map_per_cap <- treatment_locations_map_per_cap %>%
+  rename("Number of Treatment Centers Per Capita" = count_per_pop)
 
 ggplot(data = treatment_locations_map_per_cap,
             mapping = aes(x = long, y = lat.y,
-                          fill = count_per_pop, group = group)) + 
+                          fill = `Number of Treatment Centers Per Capita`, group = group)) + 
   geom_polygon(color = "gray90", size = 0.05) + 
   theme_map() +
-  scale_fill_gradient(low = "white", high = "#CB454A",
-                      breaks = c(0,20,40,60,80,120)) +
+  scale_fill_gradient(low = "white", high = "#CB454A") +
     guides(fill = guide_legend(nrow = 1)) + 
     theme(legend.position = "bottom") +
-  labs(color = "Number of Treatment Centers in State Per Capita")
+  labs(color = "Number of Treatment Centers Per Capita")
 
 ggsave("treatment_centers_per_capita.png")
 ```

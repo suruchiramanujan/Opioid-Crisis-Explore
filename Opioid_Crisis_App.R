@@ -35,19 +35,6 @@ treatment_locations <- read_rds("treatment_locations.rds")
 
 longlatinfo <- read_rds("longlatinfo.rds")
 
-# treatment_locations_map <- treatment_locations %>%
-#   left_join(longlatinfo, by = c("City", "State")) %>%
-#   group_by(State) %>%
-#   mutate(count = n()) %>%
-#   mutate(state_name = tolower(state_name)) %>%
-#   rename(state_full = state_name) %>%
-#   left_join(us_state, by = "state_full")
-
-# treatment_locations_map_per_cap <- treatment_locations_map %>%
-#   left_join(state_pop, by = "state_full") %>%
-#   group_by(State) %>%
-#   mutate(count_per_pop = n()/POPESTIMATE2019)
-
 # Joining all of the longitude latitude info to treatment locations and looking
 # at just Massachusetts.
 
@@ -229,8 +216,13 @@ ui <- navbarPage(theme = shinytheme("flatly"),
                 deaths per capita over the past 20 years, beginning with some of 
                 the lowest death rates in 1998 and rising to have the highest 
                 state death rate per capita in 2018.")))),
-                h3("Distribution of Opioid Treatment Centers in 2020 
-                   (Per Capita)"),
+                br(),
+                br(),
+                br(),
+                br(),
+                br(),
+                br(),
+                h3("Distribution of Opioid Treatment Centers Per Capita in 2020"),
                 fixedRow(column(7,imageOutput("treatment_centers_per_capita"),
                                 inline = TRUE),
                 column(3, offset = 1,
@@ -271,8 +263,9 @@ tabPanel("Massachusetts Opioid Data",
                 distribution of opioid deaths per capita across the counties of 
                 Massachusetts for three different time periods between 2000 and 
                 2015. Having looked at the data for total opioid deaths 
-                (not per data), deaths seem to be concentrated in Sussex county, 
-                although this makes sense given the high population of Sussex. 
+                (not per capita), I noticed that deaths seem to be concentrated in 
+                Middlesex county, 
+                although this makes sense given the high population of Middlesex. 
                 Thus, in order to better demonstrate the distribution of deaths, 
                 I chose to map the total deaths per capita by county."))),
                 h3("Distribution of Opioid Treatment Centers Across 
@@ -391,7 +384,7 @@ tabPanel("Model",
 )))
 server <- function(input, output, session) {
   
-  # plotting year vs opioid death rate per capita across U.S.
+  # plotting year vs opioid death rate per capita/10000 across U.S.
   
     output$overdose_counts <- renderPlot({
       death_by_year_and_state %>%
@@ -400,13 +393,13 @@ server <- function(input, output, session) {
                              fill = `Crude Rate`, group = group)) + 
         geom_polygon(color = "gray90", size = 0.05) + 
         theme_map() +
-        scale_fill_gradient(name = "Overdose Deaths Per Capita",
+        scale_fill_gradient(name = "Overdose Deaths Per Capita/100,000",
                             low = "white", high = "#CB454A",
                             breaks = c(0,5,10,15,20,25,30,35,40,45,50)) +
         guides(fill = guide_legend(nrow = 1)) + 
         theme(legend.position = "bottom")
-      }, width = 750,
-      height = 562.5)
+      }, width = 720,
+      height = 540)
     
     output$plot_1 <- renderPlot({
       
@@ -421,12 +414,12 @@ server <- function(input, output, session) {
                          group = group)) +
       geom_polygon(color = "gray90", size = 0.05) +
       theme_map() +
-      labs(names = "Number of Opioid Deaths per Capita") +
-      scale_fill_gradient(name = "Number of Opioid Deaths per Capita",
+      labs(names = "Number of Opioid Deaths per Capita/100,000") +
+      scale_fill_gradient(name = "Number of Opioid Deaths per Capita/100,000",
                           low = "white", high = "#CB454A",
                           breaks = c(0,20,40,60,80,100)) +
       guides(fill = guide_legend(nrow = 1)) +
-      theme(legend.position = "left")
+      theme(legend.position = "bottom")
    })
   
     # plotting year range vs opioid death rate per 10000 in MA vs US.
@@ -509,8 +502,8 @@ server <- function(input, output, session) {
       
         list(src = "treatment_centers_per_capita.png",
              contentType = 'image/png',
-            width = 750,
-            height = 562.5,
+            width = 720,
+            height = 540,
              alt = "This is alternate text")
       }, deleteFile = FALSE)
     
